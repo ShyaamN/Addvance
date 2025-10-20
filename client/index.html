@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Addvance Maths Quiz Mode | Practice GCSE Maths</title>
+    <meta name="description" content="Test your GCSE maths knowledge with Addvance Maths interactive quiz mode. Practice quadratics, trigonometry, percentages and more with instant feedback.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,400;0,500;0,700;1,400;1,700&family=Source+Code+Pro:wght@400;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Fallback UI: if the SPA script fails to hydrate or is still building, show a simple static page -->
+    <noscript>
+      <style>
+        .fallback{font-family:Arial,Helvetica,sans-serif;padding:2rem}
+      </style>
+      <div class="fallback">
+        <h1>Addvance Maths — Quiz Mode</h1>
+        <p>JavaScript is disabled. To run the interactive app, enable JavaScript and start the dev server (<code>npm run dev</code>).</p>
+      </div>
+    </noscript>
+
+    <script>
+      // If the SPA hasn't populated #root after a short delay, render a lightweight fallback UI
+      (function(){
+        var root = document.getElementById('root');
+        function renderFallback(){
+          if(!root) return;
+          if(root.children.length === 0 && /ready|interactive|complete/.test(document.readyState)){
+            root.innerHTML = '\n              <div style="font-family:Arial,Helvetica,sans-serif;padding:24px;max-width:900px;margin:0 auto">\n                <h1 style="color:#1C6CEA;margin:0 0 8px">Addvance Maths — Quiz Mode (fallback)</h1>\n                <p style="margin:0 0 12px">The interactive client is building or not available. To view the full app run <code>npm run dev</code> in the <code>MathQuizzer</code> folder.</p>\n                <p style="margin:0 0 12px">Quick links:</p>\n                <ul>\n                  <li><a href="/">Root directory (static listing)</a></li>\n                  <li><a href="/index.html">Static index.html</a></li>\n                </ul>\n                <p style="margin-top:16px;color:#666">If you want I can attempt to start the dev server for you.</p>\n              </div>';
+          }
+        }
+        // Wait a short time for the module to load before showing fallback
+        window.addEventListener('load', function(){ setTimeout(renderFallback, 700); });
+        // Also set a fail-safe in case load already fired
+        setTimeout(renderFallback, 1200);
+      })();
+    </script>
+  </body>
+</html>
