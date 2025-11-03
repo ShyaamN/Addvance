@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
 import { mockTopics } from "@/data/quizData";
+import type { Question } from "@shared/schema";
 import QuestionCard from "@/components/QuestionCard";
 import AnswerOption from "@/components/AnswerOption";
 import ProgressBar from "@/components/ProgressBar";
@@ -14,18 +15,16 @@ import { useToast } from "@/hooks/use-toast";
 import { QuizExport, QuizPrintView } from "@/components/QuizExport";
 import { Eye, EyeOff } from "lucide-react";
 
-export default function Quiz() {
-  const [, params] = useRoute("/quiz/:topicId");
-  const [location, setLocation] = useLocation();
+export default function CustomQuizStart() {
+  const [location, setLocationHook] = useLocation();
   const { toast } = useToast();
-  const topicId = params?.topicId;
 
   const searchParams = new URLSearchParams(location.split('?')[1]);
+  const topicIds = searchParams.get('topics')?.split(',') || [];
+  const count = parseInt(searchParams.get('count') || '10');
   const difficulty = (searchParams.get('difficulty') || 'foundation') as 'foundation' | 'higher';
-  const mode = (searchParams.get('mode') || 'quiz') as 'quiz' | 'study';
 
-  const topic = mockTopics.find(t => t.id === topicId);
-  
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
@@ -33,32 +32,43 @@ export default function Quiz() {
   const [timeRemaining, setTimeRemaining] = useState(300); // 5 minutes
   const [isComplete, setIsComplete] = useState(false);
   const [startTime] = useState(Date.now());
-  // Store shuffled options for each question to properly track correct answers
   const [questionShuffles, setQuestionShuffles] = useState<Array<Array<{text: string, isCorrect: boolean, origIdx: number}>>>([]);
   const [showAnswersForExport, setShowAnswersForExport] = useState(false);
 
   useEffect(() => {
-    if (topic) {
-      setAnswers(new Array(topic.questions.length).fill(null));
-      // Pre-shuffle all questions
-      const shuffles = topic.questions.map(q => {
-        const options = q.options.map((opt, idx) => ({
-          text: opt,
-          isCorrect: idx === q.correctAnswer,
-          origIdx: idx
-        }));
-        for (let i = options.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [options[i], options[j]] = [options[j], options[i]];
-        }
-        return options;
-      });
-      setQuestionShuffles(shuffles);
-    }
-  }, [topic]);
+    // Gather questions from selected topics
+    const allQuestions: Question[] = [];
+    topicIds.forEach(topicId => {
+      const topic = mockTopics.find(t => t.id === topicId);
+      if (topic) {
+        allQuestions.push(...topic.questions);
+      }
+    });
+
+    // Shuffle and select the requested number
+    const shuffled = allQuestions.sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, count);
+    setQuestions(selected);
+    setAnswers(new Array(selected.length).fill(null));
+
+    // Pre-shuffle all question options
+    const shuffles = selected.map(q => {
+      const options = q.options.map((opt, idx) => ({
+        text: opt,
+        isCorrect: idx === q.correctAnswer,
+        origIdx: idx
+      }));
+      for (let i = options.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [options[i], options[j]] = [options[j], options[i]];
+      }
+      return options;
+    });
+    setQuestionShuffles(shuffles);
+  }, []);
 
   useEffect(() => {
-    if (!isComplete && timeRemaining > 0 && mode === 'quiz') {
+    if (!isComplete && timeRemaining > 0) {
       const timer = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
@@ -70,25 +80,20 @@ export default function Quiz() {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [isComplete, timeRemaining, mode]);
+  }, [isComplete, timeRemaining]);
 
-  if (!topic) {
+  if (questions.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold">Topic not found</h2>
-          <Button onClick={() => setLocation("/")} className="mt-4">
-            Go Home
-          </Button>
+          <h2 className="text-2xl font-bold">Loading questions...</h2>
         </div>
       </div>
     );
   }
 
-  // Shuffle options for each question
-  const currentQuestion = topic.questions[currentQuestionIndex];
+  const currentQuestion = questions[currentQuestionIndex];
   const shuffledOptions = questionShuffles[currentQuestionIndex] || [];
-  // Find new correct answer index after shuffle
   const newCorrectIndex = shuffledOptions.findIndex(opt => opt.isCorrect);
   
   const score = answers.filter((ans, idx) => {
@@ -115,7 +120,7 @@ export default function Quiz() {
   };
 
   const handleNextQuestion = () => {
-    if (currentQuestionIndex < topic.questions.length - 1) {
+    if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       setSelectedAnswer(null);
       setShowFeedback(false);
@@ -125,46 +130,22 @@ export default function Quiz() {
   };
 
   const handleRetry = () => {
-    setCurrentQuestionIndex(0);
-    setSelectedAnswer(null);
-    setAnswers(new Array(topic.questions.length).fill(null));
-    setShowFeedback(false);
-    setTimeRemaining(300);
-    setIsComplete(false);
-    
-    // Re-shuffle all questions for retry
-    if (topic) {
-      const shuffles = topic.questions.map(q => {
-        const options = q.options.map((opt, idx) => ({
-          text: opt,
-          isCorrect: idx === q.correctAnswer,
-          origIdx: idx
-        }));
-        for (let i = options.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [options[i], options[j]] = [options[j], options[i]];
-        }
-        return options;
-      });
-      setQuestionShuffles(shuffles);
-    }
+    setLocationHook("/custom-quiz");
   };
 
   const handleGoHome = () => {
-    setLocation("/");
+    setLocationHook("/");
   };
 
   const saveQuizResult = () => {
-    if (!topic) return;
-    
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
     const prevAchievements = storage.getProgress().achievements.length;
     
     storage.addQuizResult({
-      topicId: topic.id,
-      topicName: topic.name,
+      topicId: 'custom-quiz',
+      topicName: 'Custom Quiz',
       score,
-      total: topic.questions.length,
+      total: questions.length,
       difficulty,
       timestamp: Date.now(),
       timeSpent,
@@ -180,7 +161,7 @@ export default function Quiz() {
   };
 
   useEffect(() => {
-    if (isComplete && topic) {
+    if (isComplete && questions.length > 0) {
       saveQuizResult();
     }
   }, [isComplete]);
@@ -191,8 +172,8 @@ export default function Quiz() {
         <div className="container mx-auto px-4 py-12">
           <ResultsCard
             score={score}
-            total={topic.questions.length}
-            topicName={topic.name}
+            total={questions.length}
+            topicName="Custom Quiz"
             onRetry={handleRetry}
             onHome={handleGoHome}
           />
@@ -211,14 +192,12 @@ export default function Quiz() {
             <div className="flex items-center gap-3 flex-1">
               <ProgressBar
                 current={currentQuestionIndex + 1}
-                total={topic.questions.length}
+                total={questions.length}
               />
               <Badge variant="outline">
                 {difficulty === 'foundation' ? 'Foundation' : 'Higher'}
               </Badge>
-              {mode === 'study' && (
-                <Badge variant="secondary">Study Mode</Badge>
-              )}
+              <Badge variant="secondary">Custom Quiz</Badge>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -239,19 +218,19 @@ export default function Quiz() {
                 )}
               </Button>
               <QuizExport
-                questions={topic.questions}
-                topicName={topic.name}
+                questions={questions}
+                topicName="Custom Quiz"
                 showAnswers={showAnswersForExport}
                 onToggleAnswers={() => setShowAnswersForExport(!showAnswersForExport)}
               />
-              {mode === 'quiz' && <Timer timeRemaining={timeRemaining} />}
+              <Timer timeRemaining={timeRemaining} />
             </div>
           </div>
 
           <div className="print:hidden">
             <QuestionCard
               questionNumber={currentQuestionIndex + 1}
-              totalQuestions={topic.questions.length}
+              totalQuestions={questions.length}
               question={currentQuestion.question}
               imageUrl={currentQuestion.imageUrl}
               graphExpression={currentQuestion.graphExpression}
@@ -292,15 +271,15 @@ export default function Quiz() {
               />
             )}
           </div>
-        </div>
 
-        {/* Print View */}
-        <QuizPrintView
-          questions={topic.questions}
-          topicName={topic.name}
-          showAnswers={showAnswersForExport}
-          questionShuffles={questionShuffles}
-        />
+          {/* Print View */}
+          <QuizPrintView
+            questions={questions}
+            topicName="Custom Quiz"
+            showAnswers={showAnswersForExport}
+            questionShuffles={questionShuffles}
+          />
+        </div>
       </div>
 
       {/* Print styles */}

@@ -20,7 +20,8 @@ export const mockTopics: Topic[] = [
         question: "What is the vertex of y = x² - 4x + 3?",
         options: ["(2, -1)", "(4, 3)", "(-2, 15)", "(1, 0)"],
         correctAnswer: 0,
-        explanation: "Complete the square: y = (x - 2)² - 1, so the vertex is at (2, -1)"
+        explanation: "Complete the square: y = (x - 2)² - 1, so the vertex is at (2, -1)",
+        graphExpression: "y=x^2-4x+3"
       },
       {
         id: "q3",
@@ -36,13 +37,7 @@ export const mockTopics: Topic[] = [
         correctAnswer: 0,
         explanation: "x² = -4 has no real solutions since x² cannot be negative"
       },
-      {
-        id: "q5",
-        question: "What is the discriminant of 2x² + 3x - 2 = 0?",
-        options: ["25", "17", "13", "5"],
-        correctAnswer: 0,
-        explanation: "Discriminant = b² - 4ac = 3² - 4(2)(-2) = 9 + 16 = 25"
-      }
+      // Discriminant question removed for iGCSE Edexcel compliance
     ]
   },
   {

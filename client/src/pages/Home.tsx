@@ -158,6 +158,15 @@ export default function Home() {
                 Custom Quiz
               </Button>
               <Button
+                variant="outline"
+                onClick={() => setLocation("/drills")}
+                data-testid="button-drills"
+                className="gap-2"
+              >
+                <Flame className="h-4 w-4 text-orange-500" />
+                Drills
+              </Button>
+              <Button
                 variant="default"
                 onClick={() => setLocation("/teacher-dashboard")}
                 data-testid="button-teacher-dashboard"

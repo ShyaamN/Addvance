@@ -1,4 +1,76 @@
 import { useState, useEffect } from "react";
+import Papa from "papaparse";
+
+/**
+ * Admin Dashboard - Enhanced Question Management System
+ * 
+ * Features:
+ * 1. PREVIEW MODE - Review questions before saving to database
+ *    - Click "Preview" button to see how the question will appear
+ *    - Edit or confirm before final save
+ * 
+ * 2. IMAGE UPLOAD - Add graphs, diagrams, and visual aids
+ *    - Upload images (JPG, PNG, etc.) for questions
+ *    - Images are converted to base64 and stored with the question
+ *    - Remove uploaded images before saving if needed
+ * 
+ * 3. DESMOS GRAPH INTEGRATION - Interactive mathematical graphs
+ *    - Enter LaTeX expressions (e.g., y=x^2, y=\sin(x))
+ *    - Separate multiple expressions with semicolons
+ *    - Graphs render using Desmos API v1.11
+ *    - Examples: y=x^2; y=2x+1 or x^2+y^2=25
+ * 
+ * 4. CSV BULK UPLOAD - Import multiple questions at once
+ *    - Format: Question, Option1 (correct), Option2, Option3, Option4
+ * 
+ * Usage:
+ * - Login: test@gmail.com / 123
+ * - Select a topic from the left sidebar
+ * - Click "Add Question" to create new questions
+ * - Use "Preview" to review before saving
+ * - Questions with images/graphs show badges in the list
+ */
+
+// Helper to add uploaded questions to a topic (or create a new topic)
+function addUploadedQuestionsToTopics(
+  parsedRows: any[],
+  setTopics: React.Dispatch<React.SetStateAction<Topic[]>>,
+  targetTopicId: string,
+  newTopicName: string
+) {
+  // Each row: [question, option1 (correct), option2, option3, option4]
+  const newQuestions = parsedRows
+    .filter(row => row.length >= 5 && row[0] && row[1])
+    .map((row, idx) => ({
+      id: `uploaded-${Date.now()}-${idx}`,
+      question: row[0],
+      options: [row[1], row[2], row[3], row[4]],
+      correctAnswer: 0,
+      explanation: "Uploaded by admin."
+    }));
+  if (newQuestions.length === 0) return;
+  setTopics((prev: Topic[]) => {
+    if (targetTopicId === "__new__" && newTopicName) {
+      // Create new topic
+      return [
+        ...prev,
+        {
+          id: `custom-${Date.now()}`,
+          name: newTopicName,
+          icon: "📄",
+          yearLevel: 11,
+          questions: newQuestions
+        }
+      ];
+    } else {
+      // Add to existing topic
+      return prev.map((t: Topic) => t.id === targetTopicId
+        ? { ...t, questions: [...t.questions, ...newQuestions] }
+        : t
+      );
+    }
+  });
+}
 import { useLocation } from "wouter";
 import { auth } from "@/lib/auth";
 import { mockTopics } from "@/data/quizData";
@@ -16,7 +88,10 @@ import {
   Trash2, 
   Save,
   X,
-  BookOpen
+  BookOpen,
+  Upload,
+  Image as ImageIcon,
+  Eye
 } from "lucide-react";
 import {
   Dialog,
@@ -28,18 +103,53 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { QuestionPreview } from "@/components/QuestionPreview";
+import { DesmosInput } from "@/components/DesmosInput";
+import { DesmosGraph } from "@/components/DesmosGraph";
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   const [topics, setTopics] = useState<Topic[]>(mockTopics);
+  const [csvError, setCsvError] = useState<string | null>(null);
+  const [csvTargetTopic, setCsvTargetTopic] = useState<string>("");
+  const [newTopicName, setNewTopicName] = useState<string>("");
+  // CSV upload handler
+  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCsvError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!csvTargetTopic) {
+      setCsvError("Please select a topic or create a new one.");
+      return;
+    }
+    if (csvTargetTopic === "__new__" && !newTopicName.trim()) {
+      setCsvError("Please enter a name for the new topic.");
+      return;
+    }
+    Papa.parse(file, {
+      complete: (results: Papa.ParseResult<any>) => {
+        if (!results.data || results.errors.length) {
+          setCsvError("Error parsing CSV file.");
+          return;
+        }
+        addUploadedQuestionsToTopics(results.data, setTopics, csvTargetTopic, newTopicName.trim());
+        setNewTopicName("");
+        setCsvTargetTopic("");
+      },
+      error: () => setCsvError("Error reading CSV file."),
+    });
+  };
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [questionForm, setQuestionForm] = useState<Partial<Question>>({
     question: "",
     options: ["", "", "", ""],
     correctAnswer: 0,
     explanation: "",
+    imageUrl: "",
+    graphExpression: "",
   });
 
   useEffect(() => {
@@ -62,10 +172,12 @@ export default function AdminDashboard() {
       options: questionForm.options as string[],
       correctAnswer: questionForm.correctAnswer || 0,
       explanation: questionForm.explanation || "",
+      imageUrl: questionForm.imageUrl,
+      graphExpression: questionForm.graphExpression,
     };
 
-    setTopics(prevTopics =>
-      prevTopics.map(topic => {
+    setTopics(prevTopics => {
+      const updatedTopics = prevTopics.map(topic => {
         if (topic.id === selectedTopic.id) {
           if (editingQuestion) {
             return {
@@ -82,17 +194,25 @@ export default function AdminDashboard() {
           }
         }
         return topic;
-      })
-    );
+      });
 
+      // Update the selected topic to reflect changes immediately
+      const updatedSelectedTopic = updatedTopics.find(t => t.id === selectedTopic.id);
+      if (updatedSelectedTopic) {
+        setSelectedTopic(updatedSelectedTopic);
+      }
+
+      return updatedTopics;
+    });
+
+    setShowPreview(false);
     resetForm();
   };
 
   const handleDeleteQuestion = (topicId: string, questionId: string) => {
     if (!confirm("Are you sure you want to delete this question?")) return;
-
-    setTopics(prevTopics =>
-      prevTopics.map(topic => {
+    setTopics(prevTopics => {
+      const updated = prevTopics.map(topic => {
         if (topic.id === topicId) {
           return {
             ...topic,
@@ -100,8 +220,14 @@ export default function AdminDashboard() {
           };
         }
         return topic;
-      })
-    );
+      });
+      // If the currently selected topic is affected, update it
+      if (selectedTopic && selectedTopic.id === topicId) {
+        const updatedTopic = updated.find(t => t.id === topicId) || null;
+        setSelectedTopic(updatedTopic);
+      }
+      return updated;
+    });
   };
 
   const handleEditQuestion = (question: Question) => {
@@ -113,11 +239,14 @@ export default function AdminDashboard() {
   const resetForm = () => {
     setEditingQuestion(null);
     setIsAddingQuestion(false);
+    setShowPreview(false);
     setQuestionForm({
       question: "",
       options: ["", "", "", ""],
       correctAnswer: 0,
       explanation: "",
+      imageUrl: "",
+      graphExpression: "",
     });
   };
 
@@ -125,6 +254,27 @@ export default function AdminDashboard() {
     const newOptions = [...(questionForm.options || ["", "", "", ""])];
     newOptions[index] = value;
     setQuestionForm({ ...questionForm, options: newOptions });
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Convert image to base64
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imageUrl = event.target?.result as string;
+      setQuestionForm({ ...questionForm, imageUrl });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePreview = () => {
+    if (!questionForm.question || !questionForm.options?.every(opt => opt.trim())) {
+      alert("Please fill in the question and all options before previewing.");
+      return;
+    }
+    setShowPreview(true);
   };
 
   if (!auth.isAuthenticated()) {
@@ -160,6 +310,38 @@ export default function AdminDashboard() {
                 Logout
               </Button>
             </div>
+          </div>
+
+          {/* CSV Upload */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Upload Questions (CSV)</h3>
+            <div className="flex flex-col gap-2 mb-2">
+              <Label>Select topic to add questions to:</Label>
+              <select
+                className="border rounded px-2 py-1 bg-background text-foreground"
+                style={{ backgroundColor: '#181f2a', color: '#fff' }}
+                value={csvTargetTopic}
+                onChange={e => setCsvTargetTopic(e.target.value)}
+              >
+                <option value="" style={{ backgroundColor: '#181f2a', color: '#fff' }}>-- Select Topic --</option>
+                {topics.map(t => (
+                  <option key={t.id} value={t.id} style={{ backgroundColor: '#181f2a', color: '#fff' }}>{t.name}</option>
+                ))}
+                <option value="__new__" style={{ backgroundColor: '#181f2a', color: '#fff' }}>Create New Topic...</option>
+              </select>
+              {csvTargetTopic === "__new__" && (
+                <Input
+                  type="text"
+                  placeholder="New topic name"
+                  value={newTopicName}
+                  onChange={e => setNewTopicName(e.target.value)}
+                  className="mt-2"
+                />
+              )}
+            </div>
+            <Input type="file" accept=".csv" onChange={handleCSVUpload} />
+            <p className="text-xs text-muted-foreground mt-1">Format: Question, Option1 (correct), Option2, Option3, Option4</p>
+            {csvError && <p className="text-red-500 text-xs mt-1">{csvError}</p>}
           </div>
 
           {/* Main Content */}
@@ -222,7 +404,7 @@ export default function AdminDashboard() {
                       </div>
 
                       {/* Add/Edit Question Form */}
-                      {isAddingQuestion && (
+                      {isAddingQuestion && !showPreview && (
                         <Card className="p-4 border-2 border-primary">
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
@@ -249,6 +431,45 @@ export default function AdminDashboard() {
                                 rows={3}
                               />
                             </div>
+
+                            {/* Image Upload */}
+                            <div className="space-y-2">
+                              <Label className="flex items-center gap-2">
+                                <ImageIcon className="h-4 w-4" />
+                                Upload Image (Graph/Diagram)
+                              </Label>
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                className="cursor-pointer"
+                              />
+                              {questionForm.imageUrl && (
+                                <div className="mt-2 relative">
+                                  <img 
+                                    src={questionForm.imageUrl} 
+                                    alt="Preview" 
+                                    className="max-w-xs rounded border"
+                                  />
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="absolute top-2 right-2"
+                                    onClick={() => setQuestionForm({ ...questionForm, imageUrl: "" })}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Desmos Graph Expression */}
+                            <DesmosInput
+                              value={questionForm.graphExpression || ""}
+                              onChange={(value) =>
+                                setQuestionForm({ ...questionForm, graphExpression: value })
+                              }
+                            />
 
                             <div className="space-y-2">
                               <Label>Options</Label>
@@ -292,13 +513,23 @@ export default function AdminDashboard() {
                               <Button variant="outline" onClick={resetForm}>
                                 Cancel
                               </Button>
-                              <Button onClick={handleSaveQuestion}>
-                                <Save className="h-4 w-4 mr-2" />
-                                Save Question
+                              <Button variant="secondary" onClick={handlePreview}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Preview
                               </Button>
                             </div>
                           </div>
                         </Card>
+                      )}
+
+                      {/* Preview Mode */}
+                      {showPreview && (
+                        <QuestionPreview
+                          question={questionForm}
+                          onConfirm={handleSaveQuestion}
+                          onCancel={() => setShowPreview(false)}
+                          isEditing={!!editingQuestion}
+                        />
                       )}
 
                       {/* Questions List */}
@@ -310,6 +541,16 @@ export default function AdminDashboard() {
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
                                     <Badge variant="secondary">Q{index + 1}</Badge>
+                                    {question.imageUrl && (
+                                      <Badge variant="outline" className="text-xs">
+                                        🖼️ Image
+                                      </Badge>
+                                    )}
+                                    {question.graphExpression && (
+                                      <Badge variant="outline" className="text-xs">
+                                        📊 Graph
+                                      </Badge>
+                                    )}
                                   </div>
                                   <p className="font-medium">{question.question}</p>
                                 </div>
@@ -332,6 +573,28 @@ export default function AdminDashboard() {
                                   </Button>
                                 </div>
                               </div>
+
+                              {/* Display Image if present */}
+                              {question.imageUrl && (
+                                <div className="my-3">
+                                  <img 
+                                    src={question.imageUrl} 
+                                    alt="Question illustration" 
+                                    className="max-w-md rounded border"
+                                  />
+                                </div>
+                              )}
+
+                              {/* Display Desmos Graph if present */}
+                              {question.graphExpression && (
+                                <div className="my-3">
+                                  <DesmosGraph 
+                                    expression={question.graphExpression}
+                                    width={400}
+                                    height={250}
+                                  />
+                                </div>
+                              )}
 
                               <div className="space-y-1 text-sm">
                                 {question.options.map((option, optIndex) => (

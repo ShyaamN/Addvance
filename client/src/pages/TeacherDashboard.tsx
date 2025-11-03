@@ -494,7 +494,7 @@ export default function TeacherDashboard() {
                 <div key={year}>
                   <h4 className="text-sm font-semibold text-muted-foreground mb-3">{year}</h4>
                   <div className="grid gap-3">
-                    {topics.map((topic) => (
+                    {mockTopics.map((topic) => (
                       <Card
                         key={topic.id}
                         className="p-4 cursor-pointer hover:shadow-md transition-shadow"

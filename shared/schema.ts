@@ -24,6 +24,8 @@ export interface Question {
   options: string[];
   correctAnswer: number;
   explanation: string;
+  imageUrl?: string; // For uploaded images (graphs, diagrams)
+  graphExpression?: string; // For Desmos graph rendering
 }
 
 export interface Topic {

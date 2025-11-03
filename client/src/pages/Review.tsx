@@ -79,7 +79,7 @@ export default function Review() {
     // Create a custom quiz with the wrong answer topics
     const topicIds = Array.from(new Set(wrongAnswers.map(wa => wa.topicId)));
     if (topicIds.length > 0) {
-      setLocation(`/custom-quiz?topics=${topicIds.join(',')}&mode=practice`);
+      setLocation(`/custom-quiz/start?topics=${topicIds.join(',')}&count=10&difficulty=foundation`);
     }
   };
 
