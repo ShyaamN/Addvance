@@ -9,7 +9,7 @@ import { ShieldCheck, AlertCircle } from "lucide-react";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -17,10 +17,10 @@ export default function AdminLogin() {
     e.preventDefault();
     setError("");
 
-    if (auth.login(email, password)) {
+    if (auth.login(username, password)) {
       setLocation("/admin/dashboard");
     } else {
-      setError("Invalid email or password");
+      setError("Invalid username or password");
     }
   };
 
@@ -39,13 +39,13 @@ export default function AdminLogin() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="username">Username</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="test@gmail.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="username"
+              type="text"
+              placeholder="Enter username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
             />
           </div>

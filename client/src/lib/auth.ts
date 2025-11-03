@@ -7,8 +7,8 @@ interface AdminUser {
 }
 
 const ADMIN_CREDENTIALS = {
-  email: 'test@gmail.com',
-  password: '123',
+  email: 'admin',
+  password: 'Addv@ncemaths123!',
 };
 
 class AuthManager {

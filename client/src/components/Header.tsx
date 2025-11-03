@@ -1,4 +1,4 @@
-import { Home, Moon, Sun, ShieldCheck } from "lucide-react";
+import { Home, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
@@ -57,15 +57,6 @@ export default function Header({ onHomeClick, showHome = true }: HeaderProps) {
               <Home className="h-5 w-5" />
             </Button>
           )}
-          <Button
-            variant="outline"
-            onClick={() => setLocation("/admin/login")}
-            className="gap-2"
-            data-testid="button-admin-login"
-          >
-            <ShieldCheck className="h-4 w-4" />
-            <span className="hidden sm:inline">Admin Login</span>
-          </Button>
           <Button
             variant="ghost"
             size="icon"
