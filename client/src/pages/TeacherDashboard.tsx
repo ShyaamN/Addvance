@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { mockTopics } from "@/data/quizData";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import DifficultySelector from "@/components/DifficultySelector";
-import { ArrowLeft, BookOpen, GraduationCap, FileText, Download, Eye, EyeOff, Sparkles } from "lucide-react";
+import { ArrowLeft, BookOpen, GraduationCap, FileText, Download, Eye, EyeOff, Sparkles, Maximize, Minimize } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 
@@ -32,6 +32,29 @@ export default function TeacherDashboard() {
   const [showAnswers, setShowAnswers] = useState(true);
   const [revealedAnswers, setRevealedAnswers] = useState<Set<number>>(new Set());
   const [mode, setMode] = useState<DashboardMode>('worksheet');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Handle ESC key to exit fullscreen
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && document.fullscreenElement) {
+        document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const toggleTopic = (topicId: string) => {
     setSelectedTopics(prev =>
@@ -133,103 +156,139 @@ export default function TeacherDashboard() {
     // Classroom Starters Mode - Grid Layout
     if (mode === 'starter') {
       return (
-        <div className="min-h-screen bg-background">
-          <div className="container mx-auto px-4 py-8">
-            <div className="max-w-6xl mx-auto space-y-6">
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsGenerated(false)}
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-6 w-6 text-primary" />
-                      <h1 className="text-3xl font-bold font-serif">Classroom Starters</h1>
-                    </div>
-                    <p className="text-muted-foreground mt-1">
-                      {generatedQuestions.length} starter questions • {difficulty === 'foundation' ? 'Foundation' : 'Higher'} Tier
-                    </p>
+        <div className={`bg-background ${isFullscreen ? 'classroom-starters-fullscreen' : 'min-h-screen'}`}>
+          <div className={`flex flex-col ${isFullscreen ? 'h-screen p-6 box-border' : 'container mx-auto px-4 py-8 max-w-6xl'}`}>
+            {/* Header ribbon - hidden in fullscreen */}
+            <div className={`flex items-center justify-between flex-shrink-0 ${isFullscreen ? 'hidden' : 'mb-6'}`}>
+              {/* Left side - Title */}
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsGenerated(false)}
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-6 w-6 text-primary" />
+                    <h1 className="text-3xl font-bold font-serif">Classroom Starters</h1>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={hideAllAnswers}>
-                    <EyeOff className="h-4 w-4 mr-2" />
-                    Hide All
-                  </Button>
-                  <Button variant="outline" onClick={revealAllAnswers}>
-                    <Eye className="h-4 w-4 mr-2" />
-                    Reveal All
-                  </Button>
+                  <p className="text-muted-foreground mt-1">
+                    {generatedQuestions.length} starter questions • {difficulty === 'foundation' ? 'Foundation' : 'Higher'} Tier
+                  </p>
                 </div>
               </div>
 
-              {/* Grid Layout for Starters */}
-              <div className={`grid gap-6 ${
-                generatedQuestions.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' :
-                generatedQuestions.length === 2 ? 'grid-cols-1 md:grid-cols-2' :
-                generatedQuestions.length === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :
-                'grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2'
-              }`}>
+              {/* Right side - Buttons */}
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    if (document.fullscreenElement) {
+                      document.exitFullscreen();
+                      setIsFullscreen(false);
+                    } else {
+                      document.documentElement.requestFullscreen();
+                      setIsFullscreen(true);
+                    }
+                  }}
+                >
+                  <Maximize className="h-4 w-4 mr-2" />
+                  Fullscreen
+                </Button>
+                <Button variant="outline" onClick={hideAllAnswers}>
+                  <EyeOff className="h-4 w-4 mr-2" />
+                  Hide All
+                </Button>
+                <Button variant="outline" onClick={revealAllAnswers}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  Reveal All
+                </Button>
+              </div>
+            </div>
+
+            {/* Grid Layout for Starters - takes remaining height */}
+            <div className={`grid gap-6 ${
+              isFullscreen 
+                ? 'grid-cols-2 auto-rows-fr' // Always 2 columns in fullscreen with equal row heights
+                : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2'
+            }`}
+            style={isFullscreen ? { height: 'calc(100vh - 3rem - 3rem)' } : undefined}>
                 {generatedQuestions.map((q, index) => (
-                  <Card key={index} className="p-6 space-y-4 hover:shadow-lg transition-shadow">
-                    <div className="space-y-4">
-                      {/* Question Header */}
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary font-bold text-lg">
-                            {index + 1}
-                          </div>
-                          <div>
-                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                              {q.topicName}
-                            </span>
-                          </div>
+                  <Card key={index} className={`space-y-4 transition-shadow flex flex-col ${
+                    isFullscreen ? 'h-full p-8' : 'p-6 hover:shadow-lg'
+                  }`}>
+                    {/* Question Header with Show/Hide Answer button in top right */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`flex items-center justify-center rounded-full bg-primary/10 text-primary font-bold ${
+                          isFullscreen ? 'w-16 h-16 text-3xl' : 'w-12 h-12 text-lg'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <div>
+                          <span className={`font-semibold text-muted-foreground uppercase tracking-wide ${
+                            isFullscreen ? 'text-xl' : 'text-xs'
+                          }`}>
+                            {q.topicName}
+                          </span>
                         </div>
                       </div>
-
-                      {/* Question */}
-                      <div className="bg-muted/30 p-4 rounded-lg">
-                        <h3 className="text-xl font-semibold leading-relaxed">{q.question}</h3>
-                      </div>
-
-                      {/* Show/Hide Answer Button */}
+                      
+                      {/* Individual Show/Hide Answer button - always visible */}
                       <Button
                         variant={revealedAnswers.has(index) ? "secondary" : "default"}
-                        className="w-full"
+                        size={isFullscreen ? "lg" : "sm"}
                         onClick={() => toggleRevealAnswer(index)}
+                        className={isFullscreen ? 'text-xl px-6 py-3' : ''}
                       >
                         {revealedAnswers.has(index) ? (
                           <>
-                            <EyeOff className="h-4 w-4 mr-2" />
+                            <EyeOff className={`${isFullscreen ? 'h-6 w-6' : 'h-4 w-4'} mr-2`} />
                             Hide Answer
                           </>
                         ) : (
                           <>
-                            <Eye className="h-4 w-4 mr-2" />
+                            <Eye className={`${isFullscreen ? 'h-6 w-6' : 'h-4 w-4'} mr-2`} />
                             Show Answer
                           </>
                         )}
                       </Button>
+                    </div>
 
-                      {/* Answer Section (Revealed) */}
+                    <div className="flex-1 flex flex-col justify-center space-y-4">
+                      {/* Question */}
+                      <div className={`bg-muted/30 rounded-lg ${isFullscreen ? 'p-8' : 'p-4'}`}>
+                        <h3 className={`font-semibold leading-relaxed question-text ${
+                          isFullscreen ? 'text-4xl' : 'text-xl'
+                        }`}>{q.question}</h3>
+                      </div>
+
+                      {/* Answer Section (Only when revealed) */}
                       {revealedAnswers.has(index) && (
-                        <div className="space-y-3 bg-primary/5 p-4 rounded-lg border-2 border-primary/20 animate-in fade-in slide-in-from-top-2">
+                        <div className={`space-y-3 bg-primary/5 rounded-lg border-2 border-primary/20 animate-in fade-in slide-in-from-top-2 ${
+                          isFullscreen ? 'p-8' : 'p-4'
+                        }`}>
                           <div>
-                            <p className="text-sm font-semibold text-primary mb-2">Answer:</p>
-                            <p className="text-lg font-medium">{q.answer}</p>
+                            <p className={`font-semibold text-primary mb-2 ${
+                              isFullscreen ? 'text-2xl' : 'text-sm'
+                            }`}>Answer:</p>
+                            <p className={`font-medium answer-text ${
+                              isFullscreen ? 'text-4xl' : 'text-lg'
+                            }`}>{q.answer}</p>
                           </div>
                           
-                          <Separator />
-                          
-                          <div>
-                            <p className="text-sm font-semibold text-muted-foreground mb-2">Explanation:</p>
-                            <p className="text-sm text-muted-foreground leading-relaxed">{q.explanation}</p>
-                          </div>
+                          {!isFullscreen && (
+                            <>
+                              <Separator />
+                              
+                              <div>
+                                <p className="text-sm font-semibold text-muted-foreground mb-2">Explanation:</p>
+                                <p className="text-sm text-muted-foreground leading-relaxed">{q.explanation}</p>
+                              </div>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
@@ -238,7 +297,6 @@ export default function TeacherDashboard() {
               </div>
             </div>
           </div>
-        </div>
       );
     }
 
@@ -494,7 +552,7 @@ export default function TeacherDashboard() {
                 <div key={year}>
                   <h4 className="text-sm font-semibold text-muted-foreground mb-3">{year}</h4>
                   <div className="grid gap-3">
-                    {mockTopics.map((topic) => (
+                    {topics.map((topic) => (
                       <Card
                         key={topic.id}
                         className="p-4 cursor-pointer hover:shadow-md transition-shadow"

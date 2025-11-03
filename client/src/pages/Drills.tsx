@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Eye, EyeOff, Play, Download, Printer } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Play, Download, Printer, Maximize, Minimize } from "lucide-react";
+import { useFullscreen } from "@/hooks/use-fullscreen";
 
 // Topic-based drill question generators
 const drillTopics = {
@@ -93,6 +94,8 @@ export default function Drills() {
   const [started, setStarted] = useState(false);
   const [questions, setQuestions] = useState<Array<{q: string, a: string}>>([]);
   const [showAnswers, setShowAnswers] = useState(false);
+  const drillsContainerRef = useRef<HTMLDivElement>(null);
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
 
   const toggleTopic = (topicId: string) => {
     setSelectedTopics(prev =>
@@ -153,7 +156,7 @@ export default function Drills() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div ref={drillsContainerRef} className={`min-h-screen bg-background ${isFullscreen ? 'fullscreen-drills' : ''}`}>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-6">
           {!started ? (
@@ -233,6 +236,23 @@ export default function Drills() {
                   </p>
                 </div>
                 <div className="flex gap-2 flex-wrap">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => toggleFullscreen(drillsContainerRef.current || undefined)}
+                    title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                  >
+                    {isFullscreen ? (
+                      <>
+                        <Minimize className="h-4 w-4 mr-2" />
+                        Exit Fullscreen
+                      </>
+                    ) : (
+                      <>
+                        <Maximize className="h-4 w-4 mr-2" />
+                        Fullscreen
+                      </>
+                    )}
+                  </Button>
                   <Button variant="outline" onClick={() => setShowAnswers(!showAnswers)}>
                     {showAnswers ? (
                       <>
@@ -272,13 +292,13 @@ export default function Drills() {
                 {questions.map((q, i) => (
                   <div
                     key={i}
-                    className="border rounded-lg p-4 min-h-[120px] flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-950/40 transition-all hover:shadow-md"
+                    className="border rounded-lg p-4 min-h-[120px] flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-950/40 transition-all hover:shadow-md drill-card"
                   >
-                    <div className="font-bold text-lg mb-2 text-blue-700 dark:text-blue-300 font-sans">{i + 1}</div>
-                    <div className="text-xl font-sans text-foreground dark:text-foreground text-center mb-2">{q.q}</div>
+                    <div className="font-bold text-lg mb-2 text-blue-700 dark:text-blue-300 font-sans drill-number">{i + 1}</div>
+                    <div className="text-xl font-sans text-foreground dark:text-foreground text-center mb-2 drill-question">{q.q}</div>
                     {showAnswers && (
                       <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800 w-full text-center">
-                        <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+                        <div className="text-sm font-semibold text-green-600 dark:text-green-400 drill-answer">
                           {q.a}
                         </div>
                       </div>
@@ -297,6 +317,123 @@ export default function Drills() {
           body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
           .print\\:hidden { display: none !important; }
           .print\\:block { display: block !important; }
+        }
+        
+        /* Fullscreen mode styles - optimized for classroom display */
+        .fullscreen-drills {
+          width: 100vw;
+          height: 100vh;
+          overflow: auto;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .fullscreen-drills .container {
+          max-width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          padding: 1.5rem;
+        }
+        
+        .fullscreen-drills .max-w-6xl {
+          max-width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        /* Optimize grid for fullscreen */
+        .fullscreen-drills .grid {
+          flex: 1;
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 1.5rem;
+          align-content: center;
+          padding: 2rem;
+          background: transparent;
+        }
+        
+        /* Larger cards in fullscreen */
+        .fullscreen-drills .drill-card {
+          min-height: 200px;
+          padding: 2rem;
+          background: hsl(var(--card));
+          border: 2px solid hsl(var(--border));
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        /* Much larger text for classroom visibility */
+        .fullscreen-drills .drill-number {
+          font-size: 2rem;
+          font-weight: 800;
+          margin-bottom: 1rem;
+        }
+        
+        .fullscreen-drills .drill-question {
+          font-size: 2.5rem;
+          line-height: 1.3;
+          font-weight: 600;
+          margin-bottom: 1rem;
+        }
+        
+        .fullscreen-drills .drill-answer {
+          font-size: 2rem;
+          font-weight: 700;
+          padding-top: 1rem;
+        }
+        
+        /* Adjust for different screen sizes in fullscreen */
+        @media (max-width: 1600px) {
+          .fullscreen-drills .drill-question {
+            font-size: 2rem;
+          }
+          .fullscreen-drills .drill-number {
+            font-size: 1.75rem;
+          }
+          .fullscreen-drills .drill-answer {
+            font-size: 1.75rem;
+          }
+        }
+        
+        @media (max-width: 1200px) {
+          .fullscreen-drills .grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+          .fullscreen-drills .drill-question {
+            font-size: 1.75rem;
+          }
+          .fullscreen-drills .drill-number {
+            font-size: 1.5rem;
+          }
+          .fullscreen-drills .drill-answer {
+            font-size: 1.5rem;
+          }
+        }
+        
+        /* Hide header controls in fullscreen to maximize space */
+        .fullscreen-drills .print\\:hidden {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          background: hsl(var(--background) / 0.95);
+          backdrop-filter: blur(8px);
+          padding: 0.75rem 1.5rem;
+          border-bottom: 1px solid hsl(var(--border));
+          transition: opacity 0.3s, transform 0.3s;
+        }
+        
+        .fullscreen-drills .print\\:hidden:not(:hover):not(:focus-within) {
+          opacity: 0;
+          transform: translateY(-100%);
+        }
+        
+        .fullscreen-drills .print\\:hidden:hover,
+        .fullscreen-drills .print\\:hidden:focus-within {
+          opacity: 1;
+          transform: translateY(0);
         }
       `}</style>
     </div>

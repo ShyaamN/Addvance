@@ -1,4 +1,4 @@
-import { Home, Moon, Sun } from "lucide-react";
+import { Home, Moon, Sun, Minimize } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
@@ -6,11 +6,14 @@ import { useLocation } from "wouter";
 interface HeaderProps {
   onHomeClick?: () => void;
   showHome?: boolean;
+  isFullscreen?: boolean;
+  onExitFullscreen?: () => void;
 }
 
-export default function Header({ onHomeClick, showHome = true }: HeaderProps) {
+export default function Header({ onHomeClick, showHome = true, isFullscreen = false, onExitFullscreen }: HeaderProps) {
   const [isDark, setIsDark] = useState(false);
   const [, setLocation] = useLocation();
+  const [isInFullscreen, setIsInFullscreen] = useState(false);
 
   useEffect(() => {
     const darkMode = localStorage.getItem("darkMode") === "true";
@@ -18,7 +21,24 @@ export default function Header({ onHomeClick, showHome = true }: HeaderProps) {
     if (darkMode) {
       document.documentElement.classList.add("dark");
     }
+
+    // Listen for fullscreen changes
+    const handleFullscreenChange = () => {
+      setIsInFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  const handleExitFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    }
+    if (onExitFullscreen) {
+      onExitFullscreen();
+    }
+  };
 
   const toggleDarkMode = () => {
     const newDarkMode = !isDark;
@@ -47,6 +67,16 @@ export default function Header({ onHomeClick, showHome = true }: HeaderProps) {
         </div>
         
         <div className="flex items-center gap-2">
+          {isInFullscreen && (
+            <Button
+              variant="default"
+              size="icon"
+              onClick={handleExitFullscreen}
+              title="Exit Fullscreen (ESC)"
+            >
+              <Minimize className="h-5 w-5" />
+            </Button>
+          )}
           {showHome && (
             <Button
               variant="ghost"

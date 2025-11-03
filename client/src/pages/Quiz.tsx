@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { mockTopics } from "@/data/quizData";
 import QuestionCard from "@/components/QuestionCard";
@@ -12,13 +12,16 @@ import { storage } from "@/lib/storage";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { QuizExport, QuizPrintView } from "@/components/QuizExport";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Maximize, Minimize } from "lucide-react";
+import { useFullscreen } from "@/hooks/use-fullscreen";
 
 export default function Quiz() {
   const [, params] = useRoute("/quiz/:topicId");
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const topicId = params?.topicId;
+  const quizContainerRef = useRef<HTMLDivElement>(null);
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
 
   const searchParams = new URLSearchParams(location.split('?')[1]);
   const difficulty = (searchParams.get('difficulty') || 'foundation') as 'foundation' | 'higher';
@@ -204,7 +207,7 @@ export default function Quiz() {
   const isCorrect = selectedAnswer === newCorrectIndex;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div ref={quizContainerRef} className={`min-h-screen bg-background ${isFullscreen ? 'fullscreen-quiz' : ''}`}>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
@@ -221,6 +224,18 @@ export default function Quiz() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toggleFullscreen(quizContainerRef.current || undefined)}
+                title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+              >
+                {isFullscreen ? (
+                  <Minimize className="h-4 w-4" />
+                ) : (
+                  <Maximize className="h-4 w-4" />
+                )}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -302,9 +317,93 @@ export default function Quiz() {
           questionShuffles={questionShuffles}
         />
       </div>
-
-      {/* Print styles */}
+      
+      {/* Fullscreen styles */}
       <style>{`
+        .fullscreen-quiz {
+          width: 100vw;
+          height: 100vh;
+          overflow: auto;
+          padding: 2rem;
+          box-sizing: border-box;
+        }
+        
+        .fullscreen-quiz .container {
+          max-width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          padding: 0;
+        }
+        
+        .fullscreen-quiz .max-w-4xl {
+          max-width: 100%;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        /* Controls at top */
+        .fullscreen-quiz .space-y-6 > div:first-child {
+          flex-shrink: 0;
+          margin-bottom: 2rem;
+        }
+        
+        /* Question content area */
+        .fullscreen-quiz .space-y-6 > div:last-child {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          min-height: 0;
+        }
+        
+        /* Larger question card in fullscreen */
+        .fullscreen-quiz .space-y-6 > div:not(.print\\:hidden) {
+          padding: 3rem;
+          border-radius: 1rem;
+        }
+        
+        .fullscreen-quiz h2 {
+          font-size: 2.5rem;
+          line-height: 1.3;
+          font-weight: 600;
+        }
+        
+        /* Larger answer options */
+        .fullscreen-quiz button[data-testid^="answer-"] {
+          min-height: 100px;
+          font-size: 1.75rem;
+          padding: 1.5rem 2rem;
+          border-width: 3px;
+        }
+        
+        .fullscreen-quiz button[data-testid^="answer-"] .text-xl {
+          font-size: 2rem;
+        }
+        
+        /* Larger submit button */
+        .fullscreen-quiz button[data-testid="button-submit"] {
+          font-size: 1.5rem;
+          padding: 1.5rem 3rem;
+          min-height: 70px;
+        }
+        
+        /* Larger feedback panel */
+        .fullscreen-quiz .space-y-4 > div {
+          font-size: 1.5rem;
+        }
+        
+        @media (max-width: 1200px) {
+          .fullscreen-quiz h2 {
+            font-size: 2rem;
+          }
+          .fullscreen-quiz button[data-testid^="answer-"] {
+            font-size: 1.5rem;
+          }
+        }
+        
         @media print {
           body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
           .print\\:hidden { display: none !important; }
@@ -314,3 +413,4 @@ export default function Quiz() {
     </div>
   );
 }
+

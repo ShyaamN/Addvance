@@ -26,6 +26,7 @@ export interface Question {
   explanation: string;
   imageUrl?: string; // For uploaded images (graphs, diagrams)
   graphExpression?: string; // For Desmos graph rendering
+  difficulty?: 'foundation' | 'higher'; // Foundation or Higher tier
 }
 
 export interface Topic {

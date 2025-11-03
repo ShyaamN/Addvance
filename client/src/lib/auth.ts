@@ -2,21 +2,21 @@
 // In production, this should use proper OAuth and server-side authentication
 
 interface AdminUser {
-  email: string;
+  username: string;
   role: 'admin';
 }
 
 const ADMIN_CREDENTIALS = {
-  email: 'admin',
+  username: 'admin',
   password: 'Addv@ncemaths123!',
 };
 
 class AuthManager {
   private storageKey = 'auth_admin';
 
-  login(email: string, password: string): boolean {
-    if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
-      const user: AdminUser = { email, role: 'admin' };
+  login(username: string, password: string): boolean {
+    if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+      const user: AdminUser = { username, role: 'admin' };
       localStorage.setItem(this.storageKey, JSON.stringify(user));
       return true;
     }

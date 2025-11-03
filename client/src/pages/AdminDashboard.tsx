@@ -296,7 +296,7 @@ export default function AdminDashboard() {
               <div>
                 <h1 className="text-3xl font-bold font-serif">Admin Dashboard</h1>
                 <p className="text-muted-foreground mt-1">
-                  Manage questions and content • {user?.email}
+                  Manage questions and content • {user?.username}
                 </p>
               </div>
             </div>
