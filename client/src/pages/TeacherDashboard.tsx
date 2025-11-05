@@ -216,60 +216,97 @@ export default function TeacherDashboard() {
             }`}
             style={isFullscreen ? { height: 'calc(100vh - 3rem - 3rem)' } : undefined}>
                 {generatedQuestions.map((q, index) => (
-                  <Card key={index} className={`space-y-4 transition-shadow flex flex-col ${
-                    isFullscreen ? 'h-full p-8' : 'p-6 hover:shadow-lg'
-                  }`}>
-                    {/* Question Header with Show/Hide Answer button in top right */}
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`flex items-center justify-center rounded-full bg-primary/10 text-primary font-bold ${
-                          isFullscreen ? 'w-16 h-16 text-3xl' : 'w-12 h-12 text-lg'
-                        }`}>
-                          {index + 1}
-                        </div>
-                        <div>
-                          <span className={`font-semibold text-muted-foreground uppercase tracking-wide ${
-                            isFullscreen ? 'text-xl' : 'text-xs'
-                          }`}>
-                            {q.topicName}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* Individual Show/Hide Answer button - always visible */}
-                      <Button
-                        variant={revealedAnswers.has(index) ? "secondary" : "default"}
-                        size={isFullscreen ? "lg" : "sm"}
-                        onClick={() => toggleRevealAnswer(index)}
-                        className={isFullscreen ? 'text-xl px-6 py-3' : ''}
-                      >
-                        {revealedAnswers.has(index) ? (
-                          <>
-                            <EyeOff className={`${isFullscreen ? 'h-6 w-6' : 'h-4 w-4'} mr-2`} />
-                            Hide Answer
-                          </>
-                        ) : (
-                          <>
+                  <div key={index} className={`relative ${isFullscreen ? 'h-full' : ''}`} style={{ perspective: '1000px' }}>
+                    <div 
+                      className={`relative w-full transition-transform duration-700 ${isFullscreen ? 'h-full' : ''}`}
+                      style={{
+                        transformStyle: 'preserve-3d',
+                        transform: revealedAnswers.has(index) ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                      }}
+                    >
+                      {/* Front of card - Question */}
+                      <Card className={`absolute inset-0 space-y-4 transition-shadow flex flex-col ${
+                        isFullscreen ? 'h-full p-8' : 'p-6 hover:shadow-lg'
+                      }`}
+                      style={{
+                        backfaceVisibility: 'hidden',
+                        WebkitBackfaceVisibility: 'hidden'
+                      }}>
+                        {/* Question Header with Show Answer button */}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`flex items-center justify-center rounded-full bg-primary/10 text-primary font-bold ${
+                              isFullscreen ? 'w-16 h-16 text-3xl' : 'w-12 h-12 text-lg'
+                            }`}>
+                              {index + 1}
+                            </div>
+                            <div>
+                              <span className={`font-semibold text-muted-foreground uppercase tracking-wide ${
+                                isFullscreen ? 'text-xl' : 'text-xs'
+                              }`}>
+                                {q.topicName}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <Button
+                            variant="default"
+                            size={isFullscreen ? "lg" : "sm"}
+                            onClick={() => toggleRevealAnswer(index)}
+                            className={isFullscreen ? 'text-xl px-6 py-3' : ''}
+                          >
                             <Eye className={`${isFullscreen ? 'h-6 w-6' : 'h-4 w-4'} mr-2`} />
                             Show Answer
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                          </Button>
+                        </div>
 
-                    <div className="flex-1 flex flex-col justify-center space-y-4">
-                      {/* Question */}
-                      <div className={`bg-muted/30 rounded-lg ${isFullscreen ? 'p-8' : 'p-4'}`}>
-                        <h3 className={`font-semibold leading-relaxed question-text ${
-                          isFullscreen ? 'text-4xl' : 'text-xl'
-                        }`}>{q.question}</h3>
-                      </div>
+                        <div className="flex-1 flex flex-col justify-center">
+                          <div className={`bg-muted/30 rounded-lg ${isFullscreen ? 'p-8' : 'p-4'}`}>
+                            <h3 className={`font-semibold leading-relaxed question-text ${
+                              isFullscreen ? 'text-4xl' : 'text-xl'
+                            }`}>{q.question}</h3>
+                          </div>
+                        </div>
+                      </Card>
 
-                      {/* Answer Section (Only when revealed) */}
-                      {revealedAnswers.has(index) && (
-                        <div className={`space-y-3 bg-primary/5 rounded-lg border-2 border-primary/20 animate-in fade-in slide-in-from-top-2 ${
-                          isFullscreen ? 'p-8' : 'p-4'
-                        }`}>
+                      {/* Back of card - Answer */}
+                      <Card className={`absolute inset-0 space-y-4 transition-shadow flex flex-col ${
+                        isFullscreen ? 'h-full p-8' : 'p-6 hover:shadow-lg'
+                      } bg-primary/5 border-2 border-primary/20`}
+                      style={{
+                        backfaceVisibility: 'hidden',
+                        WebkitBackfaceVisibility: 'hidden',
+                        transform: 'rotateY(180deg)'
+                      }}>
+                        {/* Answer Header with Show Question button */}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`flex items-center justify-center rounded-full bg-primary/10 text-primary font-bold ${
+                              isFullscreen ? 'w-16 h-16 text-3xl' : 'w-12 h-12 text-lg'
+                            }`}>
+                              {index + 1}
+                            </div>
+                            <div>
+                              <span className={`font-semibold text-muted-foreground uppercase tracking-wide ${
+                                isFullscreen ? 'text-xl' : 'text-xs'
+                              }`}>
+                                {q.topicName}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <Button
+                            variant="secondary"
+                            size={isFullscreen ? "lg" : "sm"}
+                            onClick={() => toggleRevealAnswer(index)}
+                            className={isFullscreen ? 'text-xl px-6 py-3' : ''}
+                          >
+                            <EyeOff className={`${isFullscreen ? 'h-6 w-6' : 'h-4 w-4'} mr-2`} />
+                            Show Question
+                          </Button>
+                        </div>
+
+                        <div className="flex-1 flex flex-col justify-center space-y-4">
                           <div>
                             <p className={`font-semibold text-primary mb-2 ${
                               isFullscreen ? 'text-2xl' : 'text-sm'
@@ -290,9 +327,9 @@ export default function TeacherDashboard() {
                             </>
                           )}
                         </div>
-                      )}
+                      </Card>
                     </div>
-                  </Card>
+                  </div>
                 ))}
               </div>
             </div>
