@@ -10,6 +10,7 @@ import DifficultySelector from "@/components/DifficultySelector";
 import { ArrowLeft, BookOpen, GraduationCap, FileText, Download, Eye, EyeOff, Sparkles, Maximize, Minimize } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import MathText from "@/components/MathText";
 
 interface GeneratedQuestion {
   topicName: string;
@@ -264,7 +265,9 @@ export default function TeacherDashboard() {
                           <div className={`bg-muted/30 rounded-lg ${isFullscreen ? 'p-8' : 'p-4'}`}>
                             <h3 className={`font-semibold leading-relaxed question-text ${
                               isFullscreen ? 'text-4xl' : 'text-xl'
-                            }`}>{q.question}</h3>
+                            }`}>
+                              <MathText>{q.question}</MathText>
+                            </h3>
                           </div>
                         </div>
                       </Card>
@@ -313,7 +316,9 @@ export default function TeacherDashboard() {
                             }`}>Answer:</p>
                             <p className={`font-medium answer-text ${
                               isFullscreen ? 'text-4xl' : 'text-lg'
-                            }`}>{q.answer}</p>
+                            }`}>
+                              <MathText>{q.answer}</MathText>
+                            </p>
                           </div>
                           
                           {!isFullscreen && (
@@ -322,7 +327,9 @@ export default function TeacherDashboard() {
                               
                               <div>
                                 <p className="text-sm font-semibold text-muted-foreground mb-2">Explanation:</p>
-                                <p className="text-sm text-muted-foreground leading-relaxed">{q.explanation}</p>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
+                                  <MathText>{q.explanation}</MathText>
+                                </p>
                               </div>
                             </>
                           )}
@@ -405,7 +412,9 @@ export default function TeacherDashboard() {
                             {q.topicName}
                           </span>
                         </div>
-                        <h3 className="text-lg font-semibold">{q.question}</h3>
+                        <h3 className="text-lg font-semibold">
+                          <MathText>{q.question}</MathText>
+                        </h3>
                       </div>
 
                       {showAnswers && (

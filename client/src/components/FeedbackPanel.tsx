@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import MathText from "./MathText";
 
 interface FeedbackPanelProps {
   isCorrect: boolean;
@@ -41,7 +42,7 @@ export default function FeedbackPanel({
           </h3>
         </div>
         <p className="text-base leading-relaxed" data-testid="text-explanation">
-          {explanation}
+          <MathText>{explanation}</MathText>
         </p>
         <Button
           onClick={onNext}

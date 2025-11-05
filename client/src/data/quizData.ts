@@ -169,6 +169,7 @@ export const mockTopics: Topic[] = [
         options: ["5", "19", "7", "-5"],
         correctAnswer: 0,
         explanation: "Subtract 7 from both sides: x = 12 - 7 = 5",
+        graphExpression: "y=x+7; y=12",
         difficulty: 'foundation'
       },
       {
@@ -185,6 +186,7 @@ export const mockTopics: Topic[] = [
         options: ["7", "4", "14", "8"],
         correctAnswer: 0,
         explanation: "Add 3: 2x = 14, divide by 2: x = 7",
+        graphExpression: "y=2x-3; y=11",
         difficulty: 'higher'
       },
       {
@@ -211,6 +213,7 @@ export const mockTopics: Topic[] = [
         options: ["x = 2 or x = 3", "x = 1 or x = 6", "x = -2 or x = -3", "x = 0 or x = 5"],
         correctAnswer: 0,
         explanation: "Factor the quadratic: (x - 2)(x - 3) = 0, so x = 2 or x = 3",
+        graphExpression: "y=x^2-5x+6",
         difficulty: 'higher'
       },
       {
@@ -228,6 +231,7 @@ export const mockTopics: Topic[] = [
         options: ["x² - 2x - 15", "x² + 2x - 15", "x² - 8x - 15", "x² - 2x + 15"],
         correctAnswer: 0,
         explanation: "Use FOIL: x² - 5x + 3x - 15 = x² - 2x - 15",
+        graphExpression: "y=x^2-2x-15",
         difficulty: 'foundation'
       },
       {
@@ -252,6 +256,7 @@ export const mockTopics: Topic[] = [
         options: ["3", "2", "1", "5"],
         correctAnswer: 0,
         explanation: "In y = mx + c form, m is the gradient, so the gradient is 3",
+        graphExpression: "y=3x+2",
         difficulty: 'foundation'
       },
       {
@@ -260,6 +265,7 @@ export const mockTopics: Topic[] = [
         options: ["-5", "2", "5", "-2"],
         correctAnswer: 0,
         explanation: "In y = mx + c form, c is the y-intercept, so it's -5",
+        graphExpression: "y=2x-5",
         difficulty: 'foundation'
       },
       {
@@ -276,6 +282,7 @@ export const mockTopics: Topic[] = [
         options: ["y = 2x - 3", "y = -2x + 1", "y = x + 1", "y = 3x + 1"],
         correctAnswer: 0,
         explanation: "Parallel lines have the same gradient (2)",
+        graphExpression: "y=2x+1; y=2x-3",
         difficulty: 'higher'
       },
       {
@@ -284,6 +291,7 @@ export const mockTopics: Topic[] = [
         options: ["y = 4", "x = 4", "y = 0", "x = 0"],
         correctAnswer: 0,
         explanation: "Horizontal lines have the form y = constant, so y = 4",
+        graphExpression: "y=4",
         difficulty: 'foundation'
       }
     ]
@@ -302,6 +310,7 @@ export const mockTopics: Topic[] = [
         options: ["3/5", "4/5", "3/4", "5/3"],
         correctAnswer: 0,
         explanation: "sin θ = opposite/hypotenuse = 3/5",
+        graphExpression: "y=\\sin(x)",
         difficulty: 'foundation'
       },
       {
@@ -310,6 +319,7 @@ export const mockTopics: Topic[] = [
         options: ["1/2", "√3/2", "1", "0"],
         correctAnswer: 0,
         explanation: "cos 60° = 1/2 (this is a standard angle to remember)",
+        graphExpression: "y=\\cos(x)",
         difficulty: 'foundation'
       },
       {
@@ -400,6 +410,7 @@ export const mockTopics: Topic[] = [
         options: ["90°", "180°", "45°", "60°"],
         correctAnswer: 0,
         explanation: "The angle in a semicircle theorem states it's always 90°",
+        graphExpression: "x^2+y^2=1; y=0; x\\ge0",
         difficulty: 'foundation'
       },
       {
@@ -448,6 +459,7 @@ export const mockTopics: Topic[] = [
         options: ["(x + 3)² - 4", "(x + 3)² + 5", "(x + 6)² - 31", "(x + 3)² - 9"],
         correctAnswer: 0,
         explanation: "x² + 6x + 9 - 4 = (x + 3)² - 4",
+        graphExpression: "y=x^2+6x+5; y=(x+3)^2-4",
         difficulty: 'higher'
       },
       {
@@ -456,6 +468,7 @@ export const mockTopics: Topic[] = [
         options: ["x = 1 or x = -4", "x = 2 or x = -2", "x = 4 or x = -1", "x = 3 or x = -4"],
         correctAnswer: 0,
         explanation: "x = (-3 ± √(9 + 16))/2 = (-3 ± 5)/2, so x = 1 or x = -4",
+        graphExpression: "y=x^2+3x-4",
         difficulty: 'higher'
       },
       {
@@ -472,6 +485,7 @@ export const mockTopics: Topic[] = [
         options: ["(1, 3)", "(-1, 3)", "(1, -3)", "(2, 3)"],
         correctAnswer: 0,
         explanation: "In vertex form a(x - h)² + k, the vertex is (h, k) = (1, 3)",
+        graphExpression: "y=2(x-1)^2+3",
         difficulty: 'higher'
       },
       {
@@ -480,6 +494,7 @@ export const mockTopics: Topic[] = [
         options: ["x = ±5", "x = 5", "x = 12.5", "x = 625"],
         correctAnswer: 0,
         explanation: "Take square root of both sides: x = ±5",
+        graphExpression: "y=x^2; y=25",
         difficulty: 'foundation'
       }
     ]

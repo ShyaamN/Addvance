@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import MathText from "./MathText";
 
 interface AnswerOptionProps {
   option: string;
@@ -52,7 +53,9 @@ export default function AnswerOption({
               label
             )}
           </div>
-          <span className="text-base sm:text-lg">{option}</span>
+          <span className="text-base sm:text-lg">
+            <MathText>{option}</MathText>
+          </span>
         </div>
       </div>
     </Card>
