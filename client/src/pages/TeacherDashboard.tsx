@@ -216,9 +216,9 @@ export default function TeacherDashboard() {
             }`}
             style={isFullscreen ? { height: 'calc(100vh - 3rem - 3rem)' } : undefined}>
                 {generatedQuestions.map((q, index) => (
-                  <div key={index} className={`relative ${isFullscreen ? 'h-full' : ''}`} style={{ perspective: '1000px' }}>
+                  <div key={index} className={`relative ${isFullscreen ? 'h-full' : 'min-h-[300px]'}`} style={{ perspective: '1000px' }}>
                     <div 
-                      className={`relative w-full transition-transform duration-700 ${isFullscreen ? 'h-full' : ''}`}
+                      className={`relative w-full h-full transition-transform duration-700`}
                       style={{
                         transformStyle: 'preserve-3d',
                         transform: revealedAnswers.has(index) ? 'rotateY(180deg)' : 'rotateY(0deg)'
