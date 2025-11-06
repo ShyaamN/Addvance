@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { mockTopics } from "@/data/quizData";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +10,7 @@ import { ArrowLeft, BookOpen, GraduationCap, FileText, Download, Eye, EyeOff, Sp
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import MathText from "@/components/MathText";
+import type { Topic } from "@shared/schema";
 
 interface GeneratedQuestion {
   topicName: string;
@@ -24,6 +24,8 @@ type DashboardMode = 'worksheet' | 'starter';
 
 export default function TeacherDashboard() {
   const [, setLocation] = useLocation();
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [starterCount, setStarterCount] = useState<number>(2);
@@ -34,6 +36,24 @@ export default function TeacherDashboard() {
   const [revealedAnswers, setRevealedAnswers] = useState<Set<number>>(new Set());
   const [mode, setMode] = useState<DashboardMode>('worksheet');
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Load topics from API
+  useEffect(() => {
+    const loadTopics = async () => {
+      try {
+        const response = await fetch('/api/topics');
+        if (response.ok) {
+          const data = await response.json();
+          setTopics(data);
+        }
+      } catch (error) {
+        console.error('Failed to load topics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadTopics();
+  }, []);
 
   // Handle ESC key to exit fullscreen
   useEffect(() => {
@@ -72,7 +92,7 @@ export default function TeacherDashboard() {
     const allQuestions: GeneratedQuestion[] = [];
     
     selectedTopics.forEach(topicId => {
-      const topic = mockTopics.find(t => t.id === topicId);
+      const topic = topics.find(t => t.id === topicId);
       if (topic) {
         topic.questions.forEach(q => {
           allQuestions.push({
@@ -146,12 +166,12 @@ export default function TeacherDashboard() {
     window.URL.revokeObjectURL(url);
   };
 
-  const groupedTopics = mockTopics.reduce((acc, topic) => {
+  const groupedTopics = topics.reduce((acc: Record<string, Topic[]>, topic: Topic) => {
     const year = `Year ${topic.yearLevel}`;
     if (!acc[year]) acc[year] = [];
     acc[year].push(topic);
     return acc;
-  }, {} as Record<string, typeof mockTopics>);
+  }, {} as Record<string, Topic[]>);
 
   if (isGenerated) {
     // Classroom Starters Mode - Grid Layout

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
-import { mockTopics } from "@/data/quizData";
-import type { Question } from "@shared/schema";
+import type { Question, Topic } from "@shared/schema";
 import QuestionCard from "@/components/QuestionCard";
 import AnswerOption from "@/components/AnswerOption";
 import ProgressBar from "@/components/ProgressBar";
@@ -27,6 +26,7 @@ export default function CustomQuizStart() {
   const count = parseInt(searchParams.get('count') || '10');
   const difficulty = (searchParams.get('difficulty') || 'foundation') as 'foundation' | 'higher';
 
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -39,10 +39,27 @@ export default function CustomQuizStart() {
   const [showAnswersForExport, setShowAnswersForExport] = useState(false);
 
   useEffect(() => {
+    const loadTopics = async () => {
+      try {
+        const response = await fetch('/api/topics');
+        if (response.ok) {
+          const data = await response.json();
+          setTopics(data);
+        }
+      } catch (error) {
+        console.error('Failed to load topics:', error);
+      }
+    };
+    loadTopics();
+  }, []);
+
+  useEffect(() => {
+    if (topics.length === 0) return;
+    
     // Gather questions from selected topics
     const allQuestions: Question[] = [];
     topicIds.forEach(topicId => {
-      const topic = mockTopics.find(t => t.id === topicId);
+      const topic = topics.find(t => t.id === topicId);
       if (topic) {
         allQuestions.push(...topic.questions);
       }

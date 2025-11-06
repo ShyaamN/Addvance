@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { mockTopics } from "@/data/quizData";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,12 +7,32 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import DifficultySelector from "@/components/DifficultySelector";
 import { ArrowLeft } from "lucide-react";
+import type { Topic } from "@shared/schema";
 
 export default function CustomQuiz() {
   const [, setLocation] = useLocation();
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [questionCount, setQuestionCount] = useState([10]);
   const [difficulty, setDifficulty] = useState<'foundation' | 'higher'>('foundation');
+
+  useEffect(() => {
+    const loadTopics = async () => {
+      try {
+        const response = await fetch('/api/topics');
+        if (response.ok) {
+          const data = await response.json();
+          setTopics(data);
+        }
+      } catch (error) {
+        console.error('Failed to load topics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadTopics();
+  }, []);
 
   const toggleTopic = (topicId: string) => {
     setSelectedTopics(prev =>
@@ -30,12 +49,12 @@ export default function CustomQuiz() {
     }
   };
 
-  const groupedTopics = mockTopics.reduce((acc, topic) => {
+  const groupedTopics = topics.reduce((acc: Record<string, Topic[]>, topic: Topic) => {
     const year = `Year ${topic.yearLevel}`;
     if (!acc[year]) acc[year] = [];
     acc[year].push(topic);
     return acc;
-  }, {} as Record<string, typeof mockTopics>);
+  }, {} as Record<string, Topic[]>);
 
   return (
     <div className="min-h-screen bg-background">

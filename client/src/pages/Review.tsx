@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { storage } from "@/lib/storage";
-import { mockTopics } from "@/data/quizData";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, Eye, EyeOff, BookOpen } from "lucide-react";
+import type { Topic } from "@shared/schema";
 
 interface WrongAnswer {
   topicName: string;
@@ -20,16 +20,34 @@ interface WrongAnswer {
 
 export default function Review() {
   const [, setLocation] = useLocation();
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [wrongAnswers, setWrongAnswers] = useState<WrongAnswer[]>([]);
   const [revealedAnswers, setRevealedAnswers] = useState<Set<number>>(new Set());
   const [showAllAnswers, setShowAllAnswers] = useState(false);
 
   useEffect(() => {
+    const loadTopics = async () => {
+      try {
+        const response = await fetch('/api/topics');
+        if (response.ok) {
+          const data = await response.json();
+          setTopics(data);
+        }
+      } catch (error) {
+        console.error('Failed to load topics:', error);
+      }
+    };
+    loadTopics();
+  }, []);
+
+  useEffect(() => {
+    if (topics.length === 0) return;
+    
     const progress = storage.getProgress();
     const wrong: WrongAnswer[] = [];
 
     progress.quizHistory.forEach(result => {
-      const topic = mockTopics.find(t => t.id === result.topicId);
+      const topic = topics.find(t => t.id === result.topicId);
       if (!topic) return;
 
       // In a real app, we'd track individual wrong answers
