@@ -5,10 +5,11 @@ import TopicButton from "@/components/TopicButton";
 import DifficultySelector from "@/components/DifficultySelector";
 import ModeSelector from "@/components/ModeSelector";
 import { Button } from "@/components/ui/button";
-import { yearLevels, mockTopics } from "@/data/quizData";
+import { yearLevels } from "@/data/quizData";
 import { storage } from "@/lib/storage";
 import { ArrowLeft, BarChart3, Flame, History, Plus, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import type { Topic } from "@shared/schema";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -17,8 +18,25 @@ export default function Home() {
   const [difficulty, setDifficulty] = useState<'foundation' | 'higher'>('foundation');
   const [mode, setMode] = useState<'quiz' | 'study'>('quiz');
   const [streak, setStreak] = useState(0);
+  const [allTopics, setAllTopics] = useState<Topic[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const loadTopics = async () => {
+      try {
+        const response = await fetch('/api/topics');
+        if (response.ok) {
+          const data = await response.json();
+          setAllTopics(data);
+        }
+      } catch (error) {
+        console.error('Failed to load topics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadTopics();
+    
     const prefs = storage.getPreferences();
     setDifficulty(prefs.difficulty);
     setMode(prefs.studyMode ? 'study' : 'quiz');
@@ -28,7 +46,7 @@ export default function Home() {
   }, []);
 
   const topics = selectedYear 
-    ? mockTopics.filter(t => t.yearLevel === selectedYear)
+    ? allTopics.filter(t => t.yearLevel === selectedYear)
     : [];
 
   const handleStartQuiz = () => {

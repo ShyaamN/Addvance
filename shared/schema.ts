@@ -18,6 +18,8 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 // Quiz types
+export type QuestionMode = 'quiz' | 'drill' | 'flashcard' | 'starter';
+
 export interface Question {
   id: string;
   question: string;
@@ -27,6 +29,7 @@ export interface Question {
   imageUrl?: string; // For uploaded images (graphs, diagrams)
   graphExpression?: string; // For Desmos graph rendering
   difficulty?: 'foundation' | 'higher'; // Foundation or Higher tier
+  mode?: QuestionMode; // Quiz, Drill, Flashcard, or Starter
 }
 
 export interface Topic {
@@ -35,6 +38,8 @@ export interface Topic {
   icon: string;
   yearLevel: number;
   questions: Question[];
+  category?: string; // e.g., "Algebra", "Geometry", "Number"
+  mode?: QuestionMode; // Default mode for this topic
 }
 
 export interface QuizSession {

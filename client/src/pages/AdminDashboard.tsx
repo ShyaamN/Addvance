@@ -76,6 +76,31 @@ export default function AdminDashboard() {
   const [csvTargetTopic, setCsvTargetTopic] = useState<string>("");
   const [newTopicName, setNewTopicName] = useState<string>("");
   const [newTopicYearLevel, setNewTopicYearLevel] = useState<number>(7);
+  const [newTopicCategory, setNewTopicCategory] = useState<string>("Algebra");
+  const [newTopicMode, setNewTopicMode] = useState<string>("quiz");
+  const [questionMode, setQuestionMode] = useState<string>("quiz");
+  const [questionDifficulty, setQuestionDifficulty] = useState<string>("foundation");
+  
+  // Category options
+  const categories = [
+    "Algebra",
+    "Number",
+    "Geometry",
+    "Ratio & Proportion",
+    "Statistics",
+    "Probability",
+    "Trigonometry",
+    "Graphs",
+    "Other"
+  ];
+  
+  // Mode options
+  const modes = [
+    { value: "quiz", label: "Quiz Mode", icon: "🎯" },
+    { value: "drill", label: "Practice Drills", icon: "💪" },
+    { value: "flashcard", label: "Flashcards", icon: "🃏" },
+    { value: "starter", label: "Starters", icon: "⚡" }
+  ];
   
   // Load topics from API
   useEffect(() => {
@@ -139,7 +164,9 @@ export default function AdminDashboard() {
             question: row[0],
             options: [row[1], row[2], row[3], row[4]],
             correctAnswer: 0,
-            explanation: "Uploaded by admin."
+            explanation: "Uploaded by admin.",
+            mode: newTopicMode as any,
+            difficulty: questionDifficulty as any
           }));
         
         if (newQuestions.length === 0) {
@@ -154,8 +181,10 @@ export default function AdminDashboard() {
           updatedTopic = {
             id: `custom-${Date.now()}`,
             name: newTopicName.trim(),
-            icon: "📄",
+            icon: modes.find(m => m.value === newTopicMode)?.icon || "📄",
             yearLevel: newTopicYearLevel,
+            category: newTopicCategory,
+            mode: newTopicMode as any,
             questions: newQuestions
           };
           setTopics(prev => [...prev, updatedTopic]);
@@ -178,6 +207,8 @@ export default function AdminDashboard() {
         
         setNewTopicName("");
         setNewTopicYearLevel(7);
+        setNewTopicCategory("Algebra");
+        setNewTopicMode("quiz");
         setCsvTargetTopic("");
       },
       error: () => setCsvError("Error reading CSV file."),
@@ -194,6 +225,8 @@ export default function AdminDashboard() {
     explanation: "",
     imageUrl: "",
     graphExpression: "",
+    mode: "quiz",
+    difficulty: "foundation"
   });
 
   useEffect(() => {
@@ -218,6 +251,8 @@ export default function AdminDashboard() {
       explanation: questionForm.explanation || "",
       imageUrl: questionForm.imageUrl,
       graphExpression: questionForm.graphExpression,
+      mode: (questionForm.mode || questionMode) as any,
+      difficulty: (questionForm.difficulty || questionDifficulty) as any,
     };
 
     const updatedTopic = {
@@ -279,6 +314,8 @@ export default function AdminDashboard() {
       explanation: "",
       imageUrl: "",
       graphExpression: "",
+      mode: "quiz",
+      difficulty: "foundation"
     });
   };
 
@@ -394,6 +431,46 @@ export default function AdminDashboard() {
                       <option value={9} style={{ backgroundColor: '#181f2a', color: '#fff' }}>Year 9</option>
                       <option value={10} style={{ backgroundColor: '#181f2a', color: '#fff' }}>Year 10</option>
                       <option value={11} style={{ backgroundColor: '#181f2a', color: '#fff' }}>Year 11</option>
+                    </select>
+                  </div>
+                  <div className="mt-2">
+                    <Label>Category</Label>
+                    <select
+                      className="border rounded px-2 py-1 bg-background text-foreground w-full mt-1"
+                      style={{ backgroundColor: '#181f2a', color: '#fff' }}
+                      value={newTopicCategory}
+                      onChange={e => setNewTopicCategory(e.target.value)}
+                    >
+                      {categories.map(cat => (
+                        <option key={cat} value={cat} style={{ backgroundColor: '#181f2a', color: '#fff' }}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mt-2">
+                    <Label>Mode</Label>
+                    <select
+                      className="border rounded px-2 py-1 bg-background text-foreground w-full mt-1"
+                      style={{ backgroundColor: '#181f2a', color: '#fff' }}
+                      value={newTopicMode}
+                      onChange={e => setNewTopicMode(e.target.value)}
+                    >
+                      {modes.map(mode => (
+                        <option key={mode.value} value={mode.value} style={{ backgroundColor: '#181f2a', color: '#fff' }}>
+                          {mode.icon} {mode.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mt-2">
+                    <Label>Question Difficulty (for all questions in CSV)</Label>
+                    <select
+                      className="border rounded px-2 py-1 bg-background text-foreground w-full mt-1"
+                      style={{ backgroundColor: '#181f2a', color: '#fff' }}
+                      value={questionDifficulty}
+                      onChange={e => setQuestionDifficulty(e.target.value)}
+                    >
+                      <option value="foundation" style={{ backgroundColor: '#181f2a', color: '#fff' }}>Foundation</option>
+                      <option value="higher" style={{ backgroundColor: '#181f2a', color: '#fff' }}>Higher</option>
                     </select>
                   </div>
                 </>
@@ -530,6 +607,37 @@ export default function AdminDashboard() {
                                 setQuestionForm({ ...questionForm, graphExpression: value })
                               }
                             />
+
+                            {/* Mode Selector */}
+                            <div className="space-y-2">
+                              <Label>Question Mode</Label>
+                              <select
+                                className="border rounded px-2 py-2 bg-background text-foreground w-full"
+                                style={{ backgroundColor: '#181f2a', color: '#fff' }}
+                                value={questionForm.mode || "quiz"}
+                                onChange={(e) => setQuestionForm({ ...questionForm, mode: e.target.value as any })}
+                              >
+                                {modes.map(mode => (
+                                  <option key={mode.value} value={mode.value} style={{ backgroundColor: '#181f2a', color: '#fff' }}>
+                                    {mode.icon} {mode.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Difficulty Selector */}
+                            <div className="space-y-2">
+                              <Label>Difficulty Level</Label>
+                              <select
+                                className="border rounded px-2 py-2 bg-background text-foreground w-full"
+                                style={{ backgroundColor: '#181f2a', color: '#fff' }}
+                                value={questionForm.difficulty || "foundation"}
+                                onChange={(e) => setQuestionForm({ ...questionForm, difficulty: e.target.value as any })}
+                              >
+                                <option value="foundation" style={{ backgroundColor: '#181f2a', color: '#fff' }}>Foundation Tier</option>
+                                <option value="higher" style={{ backgroundColor: '#181f2a', color: '#fff' }}>Higher Tier</option>
+                              </select>
+                            </div>
 
                             <div className="space-y-2">
                               <Label>Options</Label>

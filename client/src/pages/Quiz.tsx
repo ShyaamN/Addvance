@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
-import { mockTopics } from "@/data/quizData";
 import QuestionCard from "@/components/QuestionCard";
 import AnswerOption from "@/components/AnswerOption";
 import ProgressBar from "@/components/ProgressBar";
@@ -14,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { QuizExport, QuizPrintView } from "@/components/QuizExport";
 import { Eye, EyeOff, Maximize, Minimize } from "lucide-react";
 import { useFullscreen } from "@/hooks/use-fullscreen";
+import type { Topic } from "@shared/schema";
 
 export default function Quiz() {
   const [, params] = useRoute("/quiz/:topicId");
@@ -27,7 +27,25 @@ export default function Quiz() {
   const difficulty = (searchParams.get('difficulty') || 'foundation') as 'foundation' | 'higher';
   const mode = (searchParams.get('mode') || 'quiz') as 'quiz' | 'study';
 
-  const topic = mockTopics.find(t => t.id === topicId);
+  const [topic, setTopic] = useState<Topic | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const loadTopic = async () => {
+      try {
+        const response = await fetch(`/api/topics/${topicId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setTopic(data);
+        }
+      } catch (error) {
+        console.error('Failed to load topic:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (topicId) loadTopic();
+  }, [topicId]);
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
