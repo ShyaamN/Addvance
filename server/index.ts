@@ -1,6 +1,8 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { connectToDatabase, closeDatabase } from "./db";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +39,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Connect to MongoDB first
+  try {
+    await connectToDatabase();
+  } catch (error) {
+    log("Failed to connect to MongoDB. Exiting...");
+    process.exit(1);
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -61,11 +71,24 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+  server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
+  });
+
+  // Graceful shutdown
+  process.on('SIGTERM', async () => {
+    log('SIGTERM signal received: closing HTTP server');
+    server.close(async () => {
+      await closeDatabase();
+      process.exit(0);
+    });
+  });
+
+  process.on('SIGINT', async () => {
+    log('SIGINT signal received: closing HTTP server');
+    server.close(async () => {
+      await closeDatabase();
+      process.exit(0);
+    });
   });
 })();

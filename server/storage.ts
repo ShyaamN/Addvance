@@ -1,5 +1,6 @@
 import { type User, type InsertUser, type Topic } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { getDatabase } from "./db";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -10,16 +11,46 @@ export interface IStorage {
   getAllTopics(): Promise<Topic[]>;
   getTopicsByYear(yearLevel: number): Promise<Topic[]>;
   getTopicById(topicId: string): Promise<Topic | undefined>;
+  saveTopic(topic: Topic): Promise<void>;
+  deleteTopic(topicId: string): Promise<void>;
+  updateTopic(topic: Topic): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private topics: Map<string, Topic>;
+export class MongoStorage implements IStorage {
+  private initialized: boolean = false;
+  private initPromise: Promise<void> | null = null;
 
   constructor() {
-    this.users = new Map();
-    this.topics = new Map();
-    this.initializeQuizData();
+    // Don't call ensureInitialized in constructor
+  }
+
+  private async ensureInitialized() {
+    if (this.initialized) return;
+    
+    // Prevent multiple simultaneous initializations
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+    
+    this.initPromise = (async () => {
+      try {
+        const db = getDatabase();
+        const topicsCount = await db.collection('topics').countDocuments();
+        
+        // If no topics exist, initialize with default data
+        if (topicsCount === 0) {
+          console.log('Initializing database with default quiz data...');
+          await this.initializeQuizData();
+        }
+        
+        this.initialized = true;
+      } catch (error) {
+        console.error('Error initializing storage:', error);
+        throw error;
+      }
+    })();
+    
+    return this.initPromise;
   }
 
   private initializeQuizData() {
@@ -285,41 +316,75 @@ export class MemStorage implements IStorage {
       }
     ];
 
-    quizTopics.forEach(topic => {
-      this.topics.set(topic.id, topic);
+    quizTopics.forEach(async (topic) => {
+      const db = getDatabase();
+      await db.collection('topics').insertOne(topic);
     });
+    console.log('✅ Default quiz data initialized');
   }
 
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const db = getDatabase();
+    const user = await db.collection<User>('users').findOne({ id });
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const db = getDatabase();
+    const user = await db.collection<User>('users').findOne({ username });
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
     const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const db = getDatabase();
+    await db.collection('users').insertOne(user);
     return user;
   }
 
   async getAllTopics(): Promise<Topic[]> {
-    return Array.from(this.topics.values());
+    await this.ensureInitialized();
+    const db = getDatabase();
+    const topics = await db.collection<Topic>('topics').find({}).toArray();
+    return topics;
   }
 
   async getTopicsByYear(yearLevel: number): Promise<Topic[]> {
-    return Array.from(this.topics.values()).filter(
-      topic => topic.yearLevel === yearLevel
-    );
+    await this.ensureInitialized();
+    const db = getDatabase();
+    const topics = await db.collection<Topic>('topics').find({ yearLevel }).toArray();
+    return topics;
   }
 
   async getTopicById(topicId: string): Promise<Topic | undefined> {
-    return this.topics.get(topicId);
+    await this.ensureInitialized();
+    const db = getDatabase();
+    const topic = await db.collection<Topic>('topics').findOne({ id: topicId });
+    return topic || undefined;
+  }
+
+  async saveTopic(topic: Topic): Promise<void> {
+    const db = getDatabase();
+    await db.collection('topics').updateOne(
+      { id: topic.id },
+      { $set: topic },
+      { upsert: true }
+    );
+  }
+
+  async deleteTopic(topicId: string): Promise<void> {
+    const db = getDatabase();
+    await db.collection('topics').deleteOne({ id: topicId });
+  }
+
+  async updateTopic(topic: Topic): Promise<void> {
+    const db = getDatabase();
+    await db.collection('topics').updateOne(
+      { id: topic.id },
+      { $set: topic }
+    );
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new MongoStorage();

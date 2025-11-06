@@ -58,6 +58,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create or update a topic
+  app.post("/api/topics", async (req, res) => {
+    try {
+      const topic = req.body;
+      if (!topic.id || !topic.name || !topic.yearLevel) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      await storage.saveTopic(topic);
+      res.json({ success: true, topic });
+    } catch (error) {
+      console.error("Error saving topic:", error);
+      res.status(500).json({ error: "Failed to save topic" });
+    }
+  });
+
+  // Update a topic
+  app.put("/api/topics/:topicId", async (req, res) => {
+    try {
+      const topic = req.body;
+      if (topic.id !== req.params.topicId) {
+        return res.status(400).json({ error: "Topic ID mismatch" });
+      }
+      await storage.updateTopic(topic);
+      res.json({ success: true, topic });
+    } catch (error) {
+      console.error("Error updating topic:", error);
+      res.status(500).json({ error: "Failed to update topic" });
+    }
+  });
+
+  // Delete a topic
+  app.delete("/api/topics/:topicId", async (req, res) => {
+    try {
+      await storage.deleteTopic(req.params.topicId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting topic:", error);
+      res.status(500).json({ error: "Failed to delete topic" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
