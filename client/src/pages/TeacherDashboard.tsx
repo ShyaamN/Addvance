@@ -6,11 +6,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import DifficultySelector from "@/components/DifficultySelector";
-import { ArrowLeft, BookOpen, GraduationCap, FileText, Download, Eye, EyeOff, Sparkles, Maximize, Minimize } from "lucide-react";
+import { ArrowLeft, BookOpen, GraduationCap, FileText, Download, Eye, EyeOff, Sparkles, Maximize, Minimize, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import MathText from "@/components/MathText";
-import type { Topic } from "@shared/schema";
+import type { Topic, DifficultyLevel } from "@shared/schema";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface GeneratedQuestion {
   topicName: string;
@@ -18,6 +25,7 @@ interface GeneratedQuestion {
   question: string;
   answer: string;
   explanation: string;
+  difficulty: DifficultyLevel;
 }
 
 type DashboardMode = 'worksheet' | 'starter';
@@ -36,6 +44,8 @@ export default function TeacherDashboard() {
   const [revealedAnswers, setRevealedAnswers] = useState<Set<number>>(new Set());
   const [mode, setMode] = useState<DashboardMode>('worksheet');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // Individual card difficulty levels (for starters)
+  const [cardDifficulties, setCardDifficulties] = useState<Map<number, DifficultyLevel>>(new Map());
 
   // Load topics from API
   useEffect(() => {
@@ -100,7 +110,8 @@ export default function TeacherDashboard() {
             topicIcon: topic.icon,
             question: q.question,
             answer: q.options[q.correctAnswer],
-            explanation: q.explanation
+            explanation: q.explanation,
+            difficulty: q.difficulty
           });
         });
       }
@@ -114,6 +125,96 @@ export default function TeacherDashboard() {
     setGeneratedQuestions(selected);
     setIsGenerated(true);
     setRevealedAnswers(new Set());
+    
+    // Initialize card difficulties for starters
+    if (mode === 'starter') {
+      const initialDifficulties = new Map<number, DifficultyLevel>();
+      selected.forEach((q, idx) => {
+        initialDifficulties.set(idx, q.difficulty);
+      });
+      setCardDifficulties(initialDifficulties);
+    }
+  };
+
+  // Refresh a single starter card with a new question
+  const refreshCard = (cardIndex: number) => {
+    const targetDifficulty = cardDifficulties.get(cardIndex) || 3;
+    
+    // Get all questions from selected topics with the target difficulty
+    const allQuestions: GeneratedQuestion[] = [];
+    selectedTopics.forEach(topicId => {
+      const topic = topics.find(t => t.id === topicId);
+      if (topic) {
+        topic.questions.forEach(q => {
+          // Filter by difficulty level
+          if (q.difficulty === targetDifficulty) {
+            allQuestions.push({
+              topicName: topic.name,
+              topicIcon: topic.icon,
+              question: q.question,
+              answer: q.options[q.correctAnswer],
+              explanation: q.explanation,
+              difficulty: q.difficulty
+            });
+          }
+        });
+      }
+    });
+    
+    // If no questions at exact difficulty, get close ones
+    if (allQuestions.length === 0) {
+      selectedTopics.forEach(topicId => {
+        const topic = topics.find(t => t.id === topicId);
+        if (topic) {
+          topic.questions.forEach(q => {
+            if (Math.abs(q.difficulty - targetDifficulty) <= 1) {
+              allQuestions.push({
+                topicName: topic.name,
+                topicIcon: topic.icon,
+                question: q.question,
+                answer: q.options[q.correctAnswer],
+                explanation: q.explanation,
+                difficulty: q.difficulty
+              });
+            }
+          });
+        }
+      });
+    }
+    
+    if (allQuestions.length > 0) {
+      // Pick a random question that's different from current one
+      const currentQuestion = generatedQuestions[cardIndex];
+      const availableQuestions = allQuestions.filter(q => q.question !== currentQuestion.question);
+      const pool = availableQuestions.length > 0 ? availableQuestions : allQuestions;
+      const randomQuestion = pool[Math.floor(Math.random() * pool.length)];
+      
+      // Update the question at this index
+      setGeneratedQuestions(prev => {
+        const updated = [...prev];
+        updated[cardIndex] = randomQuestion;
+        return updated;
+      });
+      
+      // Hide answer when refreshing
+      setRevealedAnswers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(cardIndex);
+        return newSet;
+      });
+    }
+  };
+
+  // Update difficulty for a specific card and refresh it
+  const updateCardDifficulty = (cardIndex: number, newDifficulty: DifficultyLevel) => {
+    setCardDifficulties(prev => {
+      const updated = new Map(prev);
+      updated.set(cardIndex, newDifficulty);
+      return updated;
+    });
+    
+    // Refresh the card with new difficulty
+    setTimeout(() => refreshCard(cardIndex), 0);
   };
 
   const toggleRevealAnswer = (index: number) => {
@@ -253,7 +354,7 @@ export default function TeacherDashboard() {
                         backfaceVisibility: 'hidden',
                         WebkitBackfaceVisibility: 'hidden'
                       }}>
-                        {/* Question Header with Show Answer button */}
+                        {/* Question Header with controls */}
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-center gap-3">
                             <div className={`flex items-center justify-center rounded-full bg-primary/10 text-primary font-bold ${
@@ -267,18 +368,48 @@ export default function TeacherDashboard() {
                               }`}>
                                 {q.topicName}
                               </span>
+                              <div className={`flex items-center gap-2 mt-1 ${isFullscreen ? 'text-base' : 'text-xs'}`}>
+                                <span className="text-muted-foreground">Difficulty:</span>
+                                <Select
+                                  value={String(cardDifficulties.get(index) || q.difficulty)}
+                                  onValueChange={(value) => updateCardDifficulty(index, Number(value) as DifficultyLevel)}
+                                >
+                                  <SelectTrigger className={`w-16 ${isFullscreen ? 'h-9' : 'h-7'}`}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="1">1</SelectItem>
+                                    <SelectItem value="2">2</SelectItem>
+                                    <SelectItem value="3">3</SelectItem>
+                                    <SelectItem value="4">4</SelectItem>
+                                    <SelectItem value="5">5</SelectItem>
+                                    <SelectItem value="6">6</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </div>
                           </div>
                           
-                          <Button
-                            variant="default"
-                            size={isFullscreen ? "lg" : "sm"}
-                            onClick={() => toggleRevealAnswer(index)}
-                            className={isFullscreen ? 'text-xl px-6 py-3' : ''}
-                          >
-                            <Eye className={`${isFullscreen ? 'h-6 w-6' : 'h-4 w-4'} mr-2`} />
-                            Show Answer
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size={isFullscreen ? "default" : "sm"}
+                              onClick={() => refreshCard(index)}
+                              className={isFullscreen ? 'text-xl px-4 py-3' : ''}
+                              title="Load new question"
+                            >
+                              <RefreshCw className={`${isFullscreen ? 'h-5 w-5' : 'h-4 w-4'}`} />
+                            </Button>
+                            <Button
+                              variant="default"
+                              size={isFullscreen ? "lg" : "sm"}
+                              onClick={() => toggleRevealAnswer(index)}
+                              className={isFullscreen ? 'text-xl px-6 py-3' : ''}
+                            >
+                              <Eye className={`${isFullscreen ? 'h-6 w-6' : 'h-4 w-4'} mr-2`} />
+                              Show Answer
+                            </Button>
+                          </div>
                         </div>
 
                         <div className="flex-1 flex flex-col justify-center">

@@ -20,6 +20,9 @@ export type User = typeof users.$inferSelect;
 // Quiz types
 export type QuestionMode = 'quiz' | 'drill' | 'flashcard' | 'starter';
 
+// Difficulty scale: 1 (easiest/Year 7) to 6 (hardest/Grade 9 GCSE)
+export type DifficultyLevel = 1 | 2 | 3 | 4 | 5 | 6;
+
 export interface Question {
   id: string;
   question: string;
@@ -28,7 +31,7 @@ export interface Question {
   explanation: string;
   imageUrl?: string; // For uploaded images (graphs, diagrams)
   graphExpression?: string; // For Desmos graph rendering
-  difficulty?: 'foundation' | 'higher'; // Foundation or Higher tier
+  difficulty: DifficultyLevel; // 1 (easy) to 6 (GCSE Grade 9)
   mode?: QuestionMode; // Quiz, Drill, Flashcard, or Starter
 }
 
