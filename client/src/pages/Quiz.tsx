@@ -270,9 +270,6 @@ export default function Quiz() {
               question={currentQuestion.question}
               imageUrl={currentQuestion.imageUrl}
               graphExpression={currentQuestion.graphExpression}
-              answer={shuffledOptions[newCorrectIndex]?.text}
-              explanation={currentQuestion.explanation}
-              showFlipButton={mode === 'study'}
             />
 
             <div className="space-y-3">

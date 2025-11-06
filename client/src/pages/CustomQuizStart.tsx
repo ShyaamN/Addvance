@@ -249,9 +249,6 @@ export default function CustomQuizStart() {
               question={currentQuestion.question}
               imageUrl={currentQuestion.imageUrl}
               graphExpression={currentQuestion.graphExpression}
-              answer={shuffledOptions[newCorrectIndex]?.text}
-              explanation={currentQuestion.explanation}
-              showFlipButton={true}
             />
 
             <div className="space-y-3">

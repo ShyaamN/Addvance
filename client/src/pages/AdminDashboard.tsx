@@ -36,7 +36,8 @@ function addUploadedQuestionsToTopics(
   parsedRows: any[],
   setTopics: React.Dispatch<React.SetStateAction<Topic[]>>,
   targetTopicId: string,
-  newTopicName: string
+  newTopicName: string,
+  newTopicYearLevel: number
 ) {
   // Each row: [question, option1 (correct), option2, option3, option4]
   const newQuestions = parsedRows
@@ -58,7 +59,7 @@ function addUploadedQuestionsToTopics(
           id: `custom-${Date.now()}`,
           name: newTopicName,
           icon: "📄",
-          yearLevel: 11,
+          yearLevel: newTopicYearLevel,
           questions: newQuestions
         }
       ];
@@ -113,6 +114,7 @@ export default function AdminDashboard() {
   const [csvError, setCsvError] = useState<string | null>(null);
   const [csvTargetTopic, setCsvTargetTopic] = useState<string>("");
   const [newTopicName, setNewTopicName] = useState<string>("");
+  const [newTopicYearLevel, setNewTopicYearLevel] = useState<number>(7);
   // CSV upload handler
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCsvError(null);
@@ -132,8 +134,9 @@ export default function AdminDashboard() {
           setCsvError("Error parsing CSV file.");
           return;
         }
-        addUploadedQuestionsToTopics(results.data, setTopics, csvTargetTopic, newTopicName.trim());
+        addUploadedQuestionsToTopics(results.data, setTopics, csvTargetTopic, newTopicName.trim(), newTopicYearLevel);
         setNewTopicName("");
+        setNewTopicYearLevel(7);
         setCsvTargetTopic("");
       },
       error: () => setCsvError("Error reading CSV file."),
@@ -330,13 +333,30 @@ export default function AdminDashboard() {
                 <option value="__new__" style={{ backgroundColor: '#181f2a', color: '#fff' }}>Create New Topic...</option>
               </select>
               {csvTargetTopic === "__new__" && (
-                <Input
-                  type="text"
-                  placeholder="New topic name"
-                  value={newTopicName}
-                  onChange={e => setNewTopicName(e.target.value)}
-                  className="mt-2"
-                />
+                <>
+                  <Input
+                    type="text"
+                    placeholder="New topic name"
+                    value={newTopicName}
+                    onChange={e => setNewTopicName(e.target.value)}
+                    className="mt-2"
+                  />
+                  <div className="mt-2">
+                    <Label>Year Level</Label>
+                    <select
+                      className="border rounded px-2 py-1 bg-background text-foreground w-full mt-1"
+                      style={{ backgroundColor: '#181f2a', color: '#fff' }}
+                      value={newTopicYearLevel}
+                      onChange={e => setNewTopicYearLevel(Number(e.target.value))}
+                    >
+                      <option value={7} style={{ backgroundColor: '#181f2a', color: '#fff' }}>Year 7</option>
+                      <option value={8} style={{ backgroundColor: '#181f2a', color: '#fff' }}>Year 8</option>
+                      <option value={9} style={{ backgroundColor: '#181f2a', color: '#fff' }}>Year 9</option>
+                      <option value={10} style={{ backgroundColor: '#181f2a', color: '#fff' }}>Year 10</option>
+                      <option value={11} style={{ backgroundColor: '#181f2a', color: '#fff' }}>Year 11</option>
+                    </select>
+                  </div>
+                </>
               )}
             </div>
             <Input type="file" accept=".csv" onChange={handleCSVUpload} />
