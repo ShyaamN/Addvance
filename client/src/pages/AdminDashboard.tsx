@@ -22,6 +22,7 @@ import Papa from "papaparse";
  * 
  * 4. CSV BULK UPLOAD - Import multiple questions at once
  *    - Format: Question, Option1 (correct), Option2, Option3, Option4
+ *    - Saves directly to MongoDB database
  * 
  * Usage:
  * - Login: test@gmail.com / 123
@@ -31,47 +32,6 @@ import Papa from "papaparse";
  * - Questions with images/graphs show badges in the list
  */
 
-// Helper to add uploaded questions to a topic (or create a new topic)
-function addUploadedQuestionsToTopics(
-  parsedRows: any[],
-  setTopics: React.Dispatch<React.SetStateAction<Topic[]>>,
-  targetTopicId: string,
-  newTopicName: string,
-  newTopicYearLevel: number
-) {
-  // Each row: [question, option1 (correct), option2, option3, option4]
-  const newQuestions = parsedRows
-    .filter(row => row.length >= 5 && row[0] && row[1])
-    .map((row, idx) => ({
-      id: `uploaded-${Date.now()}-${idx}`,
-      question: row[0],
-      options: [row[1], row[2], row[3], row[4]],
-      correctAnswer: 0,
-      explanation: "Uploaded by admin."
-    }));
-  if (newQuestions.length === 0) return;
-  setTopics((prev: Topic[]) => {
-    if (targetTopicId === "__new__" && newTopicName) {
-      // Create new topic
-      return [
-        ...prev,
-        {
-          id: `custom-${Date.now()}`,
-          name: newTopicName,
-          icon: "📄",
-          yearLevel: newTopicYearLevel,
-          questions: newQuestions
-        }
-      ];
-    } else {
-      // Add to existing topic
-      return prev.map((t: Topic) => t.id === targetTopicId
-        ? { ...t, questions: [...t.questions, ...newQuestions] }
-        : t
-      );
-    }
-  });
-}
 import { useLocation } from "wouter";
 import { auth } from "@/lib/auth";
 import { mockTopics } from "@/data/quizData";
@@ -110,13 +70,49 @@ import { DesmosGraph } from "@/components/DesmosGraph";
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
-  const [topics, setTopics] = useState<Topic[]>(mockTopics);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [loading, setLoading] = useState(true);
   const [csvError, setCsvError] = useState<string | null>(null);
   const [csvTargetTopic, setCsvTargetTopic] = useState<string>("");
   const [newTopicName, setNewTopicName] = useState<string>("");
   const [newTopicYearLevel, setNewTopicYearLevel] = useState<number>(7);
+  
+  // Load topics from API
+  useEffect(() => {
+    const loadTopics = async () => {
+      try {
+        const response = await fetch('/api/topics');
+        if (response.ok) {
+          const data = await response.json();
+          setTopics(data);
+        }
+      } catch (error) {
+        console.error('Failed to load topics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadTopics();
+  }, []);
+
+  // Save topic to API
+  const saveTopic = async (topic: Topic) => {
+    try {
+      const response = await fetch('/api/topics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(topic),
+      });
+      if (!response.ok) {
+        console.error('Failed to save topic');
+      }
+    } catch (error) {
+      console.error('Error saving topic:', error);
+    }
+  };
+
   // CSV upload handler
-  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setCsvError(null);
     const file = e.target.files?.[0];
     if (!file) return;
@@ -129,12 +125,57 @@ export default function AdminDashboard() {
       return;
     }
     Papa.parse(file, {
-      complete: (results: Papa.ParseResult<any>) => {
+      complete: async (results: Papa.ParseResult<any>) => {
         if (!results.data || results.errors.length) {
           setCsvError("Error parsing CSV file.");
           return;
         }
-        addUploadedQuestionsToTopics(results.data, setTopics, csvTargetTopic, newTopicName.trim(), newTopicYearLevel);
+        
+        // Parse questions from CSV
+        const newQuestions = results.data
+          .filter((row: any[]) => row.length >= 5 && row[0] && row[1])
+          .map((row: any[], idx: number) => ({
+            id: `uploaded-${Date.now()}-${idx}`,
+            question: row[0],
+            options: [row[1], row[2], row[3], row[4]],
+            correctAnswer: 0,
+            explanation: "Uploaded by admin."
+          }));
+        
+        if (newQuestions.length === 0) {
+          setCsvError("No valid questions found in CSV.");
+          return;
+        }
+
+        let updatedTopic: Topic;
+        
+        if (csvTargetTopic === "__new__") {
+          // Create new topic
+          updatedTopic = {
+            id: `custom-${Date.now()}`,
+            name: newTopicName.trim(),
+            icon: "📄",
+            yearLevel: newTopicYearLevel,
+            questions: newQuestions
+          };
+          setTopics(prev => [...prev, updatedTopic]);
+        } else {
+          // Add to existing topic
+          const existingTopic = topics.find(t => t.id === csvTargetTopic);
+          if (!existingTopic) {
+            setCsvError("Topic not found.");
+            return;
+          }
+          updatedTopic = {
+            ...existingTopic,
+            questions: [...existingTopic.questions, ...newQuestions]
+          };
+          setTopics(prev => prev.map(t => t.id === csvTargetTopic ? updatedTopic : t));
+        }
+
+        // Save to API
+        await saveTopic(updatedTopic);
+        
         setNewTopicName("");
         setNewTopicYearLevel(7);
         setCsvTargetTopic("");
@@ -166,7 +207,7 @@ export default function AdminDashboard() {
     setLocation("/");
   };
 
-  const handleSaveQuestion = () => {
+  const handleSaveQuestion = async () => {
     if (!selectedTopic || !questionForm.question) return;
 
     const newQuestion: Question = {
@@ -179,58 +220,46 @@ export default function AdminDashboard() {
       graphExpression: questionForm.graphExpression,
     };
 
-    setTopics(prevTopics => {
-      const updatedTopics = prevTopics.map(topic => {
-        if (topic.id === selectedTopic.id) {
-          if (editingQuestion) {
-            return {
-              ...topic,
-              questions: topic.questions.map(q =>
-                q.id === editingQuestion.id ? newQuestion : q
-              ),
-            };
-          } else {
-            return {
-              ...topic,
-              questions: [...topic.questions, newQuestion],
-            };
-          }
-        }
-        return topic;
-      });
+    const updatedTopic = {
+      ...selectedTopic,
+      questions: editingQuestion
+        ? selectedTopic.questions.map(q => q.id === editingQuestion.id ? newQuestion : q)
+        : [...selectedTopic.questions, newQuestion]
+    };
 
-      // Update the selected topic to reflect changes immediately
-      const updatedSelectedTopic = updatedTopics.find(t => t.id === selectedTopic.id);
-      if (updatedSelectedTopic) {
-        setSelectedTopic(updatedSelectedTopic);
-      }
+    setTopics(prevTopics => prevTopics.map(topic =>
+      topic.id === selectedTopic.id ? updatedTopic : topic
+    ));
+    setSelectedTopic(updatedTopic);
 
-      return updatedTopics;
-    });
+    // Save to API
+    await saveTopic(updatedTopic);
 
     setShowPreview(false);
     resetForm();
   };
 
-  const handleDeleteQuestion = (topicId: string, questionId: string) => {
+  const handleDeleteQuestion = async (topicId: string, questionId: string) => {
     if (!confirm("Are you sure you want to delete this question?")) return;
-    setTopics(prevTopics => {
-      const updated = prevTopics.map(topic => {
-        if (topic.id === topicId) {
-          return {
-            ...topic,
-            questions: topic.questions.filter(q => q.id !== questionId),
-          };
-        }
-        return topic;
-      });
-      // If the currently selected topic is affected, update it
-      if (selectedTopic && selectedTopic.id === topicId) {
-        const updatedTopic = updated.find(t => t.id === topicId) || null;
-        setSelectedTopic(updatedTopic);
-      }
-      return updated;
-    });
+    
+    const topicToUpdate = topics.find(t => t.id === topicId);
+    if (!topicToUpdate) return;
+
+    const updatedTopic = {
+      ...topicToUpdate,
+      questions: topicToUpdate.questions.filter(q => q.id !== questionId)
+    };
+
+    setTopics(prevTopics => prevTopics.map(topic =>
+      topic.id === topicId ? updatedTopic : topic
+    ));
+
+    if (selectedTopic && selectedTopic.id === topicId) {
+      setSelectedTopic(updatedTopic);
+    }
+
+    // Save to API
+    await saveTopic(updatedTopic);
   };
 
   const handleEditQuestion = (question: Question) => {
@@ -282,6 +311,17 @@ export default function AdminDashboard() {
 
   if (!auth.isAuthenticated()) {
     return null;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading topics...</p>
+        </div>
+      </div>
+    );
   }
 
   const user = auth.getCurrentUser();
