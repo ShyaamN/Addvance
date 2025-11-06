@@ -46,7 +46,25 @@ Render will show a configuration form. Fill in:
 
 ---
 
-### 4️⃣ **Deploy**
+### 4️⃣ **Set Environment Variables**
+
+**IMPORTANT:** You must add your MongoDB connection string:
+
+1. After creating the service, go to the **"Environment"** tab
+2. Click **"Add Environment Variable"**
+3. Add the following:
+
+| Key | Value |
+|-----|-------|
+| `MONGODB_URI` | `mongodb+srv://addvancemathsdev_db_user:6FfbJfZIZnl5ElL6@cluster0.yjnohgw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0` |
+
+4. Click **"Save Changes"**
+
+> ⚠️ Without this environment variable, your app won't be able to connect to MongoDB Atlas and will crash on startup.
+
+---
+
+### 5️⃣ **Deploy**
 
 1. Click **"Create Web Service"**
 2. Render will start building your app (watch the logs!)
@@ -86,19 +104,12 @@ git push origin main
 - 💡 Good for: Development, testing, low-traffic apps
 - 💰 Keep always active: Upgrade to $7/month paid plan
 
----
+**MongoDB Atlas Free Tier**
 
-## 🔧 Environment Variables (For Later)
-
-When you add database or API keys:
-
-1. Go to your service dashboard
-2. Click **"Environment"** tab
-3. Add variables:
-   - `DATABASE_URL` (for database connection)
-   - `NODE_ENV` (already set to `production`)
-   - Any API keys needed
-4. Click **"Save Changes"** (triggers redeploy)
+- 512MB storage (sufficient for thousands of questions)
+- Shared resources (adequate for educational use)
+- Always available (doesn't sleep)
+- No credit card required
 
 ---
 
